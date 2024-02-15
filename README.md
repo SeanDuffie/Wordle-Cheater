@@ -10,5 +10,5 @@ This program should give me an advantage over my friends when it comes to the da
 - [ ] Measure number of possible permutations for each guess
 - [ ] Eliminate spaces from the permutation when guessed correctly
 - [ ] Eliminate invalid letters from permutation when detected
-- [ ] Do a spell check before each guess
+- [ ] Do a spell check before each guess - https://replit.com/talk/ask/How-to-check-if-a-word-is-an-English-word-with-Python/31374 
 - [ ] Allow preview of all possible valid words to the user
