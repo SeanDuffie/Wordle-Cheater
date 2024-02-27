@@ -1,4 +1,4 @@
-""" @file guesser.py
+""" @file word_bank.py
     @author Sean Duffie
     @brief This program is intended to automatically solve the NYT Wordle puzzle.
 
