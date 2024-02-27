@@ -7,8 +7,8 @@ This program should give me an advantage over my friends when it comes to the da
 - [ ] Or a web scraper to pull directly from the HTML
 - [ ] Ability to type in it's own guesses through pynput or some other keyboard library
 - [ ] Time the duration that it takes to guess
-- [ ] Measure number of possible permutations for each guess
-- [ ] Eliminate spaces from the permutation when guessed correctly
-- [ ] Eliminate invalid letters from permutation when detected
-- [ ] Do a spell check before each guess - https://replit.com/talk/ask/How-to-check-if-a-word-is-an-English-word-with-Python/31374 
-- [ ] Allow preview of all possible valid words to the user
+- [x] Measure number of possible permutations for each guess
+- [x] Eliminate spaces from the permutation when guessed correctly
+- [x] Eliminate invalid letters from permutation when detected
+- [x] Do a spell check before each guess - https://replit.com/talk/ask/How-to-check-if-a-word-is-an-English-word-with-Python/31374 
+- [x] Allow preview of all possible valid words to the user
