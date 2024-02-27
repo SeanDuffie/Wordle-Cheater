@@ -16,8 +16,7 @@ class WordBank:
         as they narrow down with more guesses.
     """
     def __init__(self):
-        all_words = self.read_file()
-        self.narrowed = all_words.copy()
+        self.word_bank = self.read_file()
 
         # When a letter is confirmed to a location (GREEN), it will be placed here
         self.confirmed = ["", "", "", "", ""]
@@ -31,6 +30,7 @@ class WordBank:
         
         TODO: Output the filtered file to save overhead time in the future
         FIXME: This contains many words that either aren't real or don't exist in Wordle database
+        FIXME: All of these words should be lowercase, but that may be better to curate the database rather than my code
 
         Returns:
             pd.Dataframe: Single column Dataframe that has all possible 5 letter words
@@ -78,12 +78,12 @@ class WordBank:
         # print(f"{self.confirmed=}\n{self.rejected=}\n{self.possible=}")
 
         # Generate a mask of the WordBank Dataframe by comparing the options with the known data
-        mask = self.narrowed["Words"].apply(self.search)
+        mask = self.word_bank["Words"].apply(self.search)
         # Apply the mask on the Dataframe and drop all False entries
-        self.narrowed = self.narrowed[mask].reset_index(drop=True)
+        self.word_bank = self.word_bank[mask].reset_index(drop=True)
 
         print("New Options Generated:")
-        print(self.narrowed)
+        print(self.word_bank)
 
     def search(self, word):
         """ Helper function to be applied on the wordbank dataframe
@@ -97,10 +97,17 @@ class WordBank:
             bool: True if the word is a possible combination of letters
         """
         for i in range(5):
+            # First, check to see if the letter is already confirmed
             if self.confirmed[i] != "":
                 if word[i] != self.confirmed[i]:
                     return False
+            # Second, check to see if any letters were rejected
             if word[i] in self.rejected[i]:
+                return False
+        # Finally, check to see that the word contains at least one of each possible letter
+        # TODO: Later I will add more functionality to check for duplicate letters
+        for c in self.possible:
+            if not c in word:
                 return False
         return True
 
@@ -111,7 +118,8 @@ if __name__ == "__main__":
 
     # Enter each guess along with the results recieved from Wordle
     GUESS = "aegis"
+    print("First Guess: aegis")
     while GUESS != "q":
         RESULTS = input("What were the results? (2=green, 1=yellow, 0=grey) (ex. '02001'): ")
-        b.check(GUESS, RESULTS)
+        b.check(GUESS.lower(), RESULTS)
         GUESS = input("Enter next guess (or 'q' to quit): ")
