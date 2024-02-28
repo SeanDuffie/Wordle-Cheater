@@ -31,10 +31,6 @@ class WordBank:
 
     def read_file(self):
         """ Reads in the word bank downloaded from the interned, then parses for only valid words
-        
-        TODO: Output the filtered file to save overhead time in the future
-        FIXME: This contains many words that either aren't real or don't exist in Wordle database
-        FIXME: All of these words should be lowercase, but that may be better to curate the database rather than my code
 
         Returns:
             pd.Dataframe: Single column Dataframe that has all possible 5 letter words
@@ -54,7 +50,7 @@ class WordBank:
                 return word.isalpha()
             return False
 
-        file = pd.read_table(filepath_or_buffer=f'{RTDIR}\..\words.txt', names=["Words"])
+        file = pd.read_csv(filepath_or_buffer=f'{RTDIR}\\..\\words.csv', names=["Words"])
         mask = file["Words"].apply(valid_word)
         return file[mask].reset_index(drop=True)
 
@@ -79,7 +75,7 @@ class WordBank:
                 self.rejected[3] += letter
                 self.rejected[4] += letter
                 self.possible.replace(letter, "")
-        # print(f"{self.confirmed=}\n{self.rejected=}\n{self.possible=}")
+        print(f"{self.confirmed=} | {self.rejected=} | {self.possible=}")
 
         # Generate a mask of the WordBank Dataframe by comparing the options with the known data
         mask = self.word_bank["Words"].apply(self.search)
@@ -89,7 +85,8 @@ class WordBank:
         options = "\nNew Options Generated: "
         for choice in self.word_bank["Words"]:
             options += choice + ", "
-        print(options)
+        print(options[:-1])
+        print()
 
     def search(self, word):
         """ Helper function to be applied on the wordbank dataframe
@@ -123,9 +120,39 @@ if __name__ == "__main__":
     b = WordBank()
 
     # Enter each guess along with the results recieved from Wordle
-    GUESS = "aegis"
-    print("First Guess: aegis")
+    GUESS = input("Enter first guess: ")
+    while len(GUESS) != 5 and not GUESS.isalpha():
+        GUESS = input("Invalid entry! Can only be 5 characters and alphabetic! Try again: ")
+
+    GUESS_COUNT = 1
     while GUESS != "q":
-        RESULTS = input("What were the results? (2=green, 1=yellow, 0=grey) (ex. '02001'): ")
+        # Prompt the user for what the results were
+        # TODO: Potentially grab this automatically, either through webscraping or image processing
+        RESULTS = ""
+        while len(RESULTS) != 5 and not RESULTS.isnumeric():
+            if RESULTS == "q":
+                break
+            RESULTS = input("What were the results? (2=green, 1=yellow, 0=grey) (ex. '02001'): ")
+
+        # Check if the user won
+        if RESULTS == "22222":
+            print(f"\nCongrats! You solved the Wordle in {GUESS_COUNT} attempts! Final Answer = {GUESS}")
+            break
+
+        # Check if the user exceeded the guess limit
+        if GUESS_COUNT >= 6:
+            print("\nSorry, you've used all of your guesses")
+            break
+
+        # Perform the actual check and suggest next words
+        # TODO: Display statistics here
         b.check(GUESS.lower(), RESULTS)
-        GUESS = input("Enter next guess (or 'q' to quit): ")
+
+        # Prompt the user for their next guess
+        # TODO: Eventually pick this automatically based on statistics
+        GUESS = ""
+        while len(GUESS) != 5 and not GUESS.isalpha():
+            if GUESS == "q":
+                break
+            GUESS = input(f"Enter guess {GUESS_COUNT} (or 'q' to quit): ")
+        GUESS_COUNT += 1
