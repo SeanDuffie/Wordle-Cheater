@@ -8,7 +8,11 @@
     TODO: calculate statistics on which letters are most valuable to identify
     TODO: Guessing logic for automatic picking
 """
+import os
+
 import pandas as pd
+
+RTDIR = os.path.dirname(__file__)
 
 
 class WordBank:
@@ -50,7 +54,7 @@ class WordBank:
                 return word.isalpha()
             return False
 
-        file = pd.read_table(filepath_or_buffer='words.txt', names=["Words"])
+        file = pd.read_table(filepath_or_buffer=f'{RTDIR}\..\words.txt', names=["Words"])
         mask = file["Words"].apply(valid_word)
         return file[mask].reset_index(drop=True)
 
@@ -82,8 +86,10 @@ class WordBank:
         # Apply the mask on the Dataframe and drop all False entries
         self.word_bank = self.word_bank[mask].reset_index(drop=True)
 
-        print("New Options Generated:")
-        print(self.word_bank)
+        options = "\nNew Options Generated: "
+        for choice in self.word_bank["Words"]:
+            options += choice + ", "
+        print(options)
 
     def search(self, word):
         """ Helper function to be applied on the wordbank dataframe
