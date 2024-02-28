@@ -154,5 +154,5 @@ if __name__ == "__main__":
         while len(GUESS) != 5 and not GUESS.isalpha():
             if GUESS == "q":
                 break
-            GUESS = input(f"Enter guess {GUESS_COUNT} (or 'q' to quit): ")
+            GUESS = input(f"Enter guess #{GUESS_COUNT} (or 'q' to quit): ")
         GUESS_COUNT += 1
