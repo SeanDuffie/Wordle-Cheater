@@ -8,6 +8,7 @@
     TODO: calculate statistics on which letters are most valuable to identify
     TODO: Guessing logic for automatic picking
 """
+import datetime
 import os
 
 import pandas as pd
@@ -124,6 +125,7 @@ if __name__ == "__main__":
     while len(GUESS) != 5 and not GUESS.isalpha():
         GUESS = input("Invalid entry! Can only be 5 characters and alphabetic! Try again: ")
 
+    start = datetime.datetime.now()
     GUESS_COUNT = 1
     while GUESS != "q":
         # Prompt the user for what the results were
@@ -156,3 +158,6 @@ if __name__ == "__main__":
                 break
             GUESS = input(f"Enter guess #{GUESS_COUNT} (or 'q' to quit): ")
         GUESS_COUNT += 1
+
+    stop = datetime.datetime.now()
+    print(f"This took {stop-start} seconds")
