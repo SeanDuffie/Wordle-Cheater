@@ -12,6 +12,7 @@ import datetime
 import os
 
 import pandas as pd
+import numpy as np
 
 RTDIR = os.path.dirname(__file__)
 
@@ -56,7 +57,7 @@ class WordBank:
         return file[mask].reset_index(drop=True)
 
     def check(self, word: str, res: str):
-        """_summary_
+        """ 
 
         Args:
             word (str): _description_
@@ -89,7 +90,88 @@ class WordBank:
         print(options[:-1])
         print()
 
-    def search(self, word):
+        self.generate_probs()
+        # self.word_bank["Odds"] = self.word_bank["Words"].apply(args=self.generate_probs)
+
+        if self.word_bank["Words"].size == 1:
+            return True
+        if self.word_bank["Words"].size == 0:
+            print("Error! No more options!")
+            return True
+
+    def generate_probs(self):
+        alphabet = {
+            "a": 0,
+            "b": 0,
+            "c": 0,
+            "d": 0,
+            "e": 0,
+            "f": 0,
+            "g": 0,
+            "h": 0,
+            "i": 0,
+            "j": 0,
+            "k": 0,
+            "l": 0,
+            "m": 0,
+            "n": 0,
+            "o": 0,
+            "p": 0,
+            "q": 0,
+            "r": 0,
+            "s": 0,
+            "t": 0,
+            "u": 0,
+            "v": 0,
+            "w": 0,
+            "x": 0,
+            "y": 0,
+            "z": 0
+        }
+
+        # condition = self.word_bank["Words"].value_counts(subset=list(alphabet), )
+        # print(condition)
+        total = self.word_bank["Words"].size * 5
+        print(f"Choosing from {self.word_bank['Words'].size} options...")
+        bank = [alphabet.copy(),alphabet.copy(),alphabet.copy(),alphabet.copy(),alphabet.copy()]
+        count = [0, 0, 0, 0, 0]
+        # odds = np.array()
+
+        for word in self.word_bank["Words"]:
+            for i in range(5):
+                if self.confirmed[i] == "":
+                    letter = word[i]
+
+                    alphabet[letter] += 1
+
+                    bank[i][letter] += 1
+                    count[i] += 1
+
+        print(f"{total=}")
+        print(alphabet)
+
+        for i in range(5):
+            print(bank[i])
+
+        for i in range(5):
+            if self.confirmed[i] == "":
+                print(f"Slot {i+1} predicted: ")
+                for key, val in bank[i].items():
+                    if val != 0:
+                        if count[i] > 0:
+                            if val == count[i]:
+                                print(f"Confirmed slot {i}: {key}")
+                                self.confirmed[i] = key
+                            print(f"\t{key} = {val*100/count[i]}")
+            else:
+                print(f"Slot {i+1} confirmed: {self.confirmed[i]}")
+
+        print("Total Options:")
+        for key, val in alphabet.items():
+            if val > 0 and key not in self.possible:
+                print(f"\t{key} = {val*100/total}%")
+
+    def search(self, word: str):
         """ Helper function to be applied on the wordbank dataframe
 
         TODO: Optimizations could be made here to make the search more accurate
@@ -121,7 +203,8 @@ if __name__ == "__main__":
     b = WordBank()
 
     # Enter each guess along with the results recieved from Wordle
-    GUESS = input("Enter first guess: ")
+    # GUESS = input("Enter first guess: ")
+    GUESS = "crane"
     while len(GUESS) != 5 and not GUESS.isalpha():
         GUESS = input("Invalid entry! Can only be 5 characters and alphabetic! Try again: ")
 
@@ -148,7 +231,9 @@ if __name__ == "__main__":
 
         # Perform the actual check and suggest next words
         # TODO: Display statistics here
-        b.check(GUESS.lower(), RESULTS)
+        if b.check(GUESS.lower(), RESULTS):
+            print(f"\nCongrats! You solved the Wordle in {GUESS_COUNT} attempts! Final Answer = {GUESS}")
+            break
 
         # Prompt the user for their next guess
         # TODO: Eventually pick this automatically based on statistics
@@ -156,7 +241,7 @@ if __name__ == "__main__":
         while len(GUESS) != 5 and not GUESS.isalpha():
             if GUESS == "q":
                 break
-            GUESS = input(f"Enter guess #{GUESS_COUNT} (or 'q' to quit): ")
+            GUESS = input(f"Enter guess #{GUESS_COUNT+1} (or 'q' to quit): ")
         GUESS_COUNT += 1
 
     stop = datetime.datetime.now()
