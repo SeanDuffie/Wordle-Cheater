@@ -213,13 +213,13 @@ class WordBank:
 
         # 
         count = sum(alphabet.values())
-        if self.debug:
-            print(f"Analyzing word: {word}")
+        # if self.debug:
+        #     print(f"Analyzing word: {word}")
         for i in range(5):
             # If the letter is already confirmed, it shouldn't affect the odds
             if self.confirmed[i] == "":
-                if self.debug:
-                    print(f"\t{word[i]} has a chance of {alphabet[word[i]]*100/count}")
+                # if self.debug:
+                #     print(f"\t{word[i]} has a chance of {alphabet[word[i]]*100/count}")
                 odds *= alphabet[ word[i] ] / count
 
         return odds * 100
