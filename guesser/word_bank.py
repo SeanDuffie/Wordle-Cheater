@@ -56,7 +56,7 @@ class WordBank:
         mask = file["Words"].apply(valid_word)
         return file[mask].reset_index(drop=True)
 
-    def check(self, word: str, res: str):
+    def submit_guess(self, word: str, res: str):
         """ 
 
         Args:
@@ -100,6 +100,12 @@ class WordBank:
             return True
 
     def generate_probs(self):
+        """_summary_
+
+        Returns:
+            _type_: _description_
+        """
+        # Dictionary of all letters in the alphabet, and the percentage of occurances
         alphabet = {
             "a": 0,
             "b": 0,
@@ -129,13 +135,11 @@ class WordBank:
             "z": 0
         }
 
-        # condition = self.word_bank["Words"].value_counts(subset=list(alphabet), )
-        # print(condition)
+        # Initialize all the containers and sizes
         total = self.word_bank["Words"].size * 5
         print(f"Choosing from {self.word_bank['Words'].size} options...")
         bank = [alphabet.copy(),alphabet.copy(),alphabet.copy(),alphabet.copy(),alphabet.copy()]
         count = [0, 0, 0, 0, 0]
-        # odds = np.array()
 
         for word in self.word_bank["Words"]:
             for i in range(5):
@@ -150,15 +154,18 @@ class WordBank:
         print(f"{total=}")
         print(alphabet)
 
+
         for i in range(5):
             print(bank[i])
 
+        # Iterate over
         for i in range(5):
             if self.confirmed[i] == "":
                 print(f"Slot {i+1} predicted: ")
                 for key, val in bank[i].items():
                     if val != 0:
                         if count[i] > 0:
+                            # If all remaining options 
                             if val == count[i]:
                                 print(f"Confirmed slot {i}: {key}")
                                 self.confirmed[i] = key
@@ -170,6 +177,8 @@ class WordBank:
         for key, val in alphabet.items():
             if val > 0 and key not in self.possible:
                 print(f"\t{key} = {val*100/total}%")
+
+        return alphabet
 
     def search(self, word: str):
         """ Helper function to be applied on the wordbank dataframe
@@ -231,7 +240,7 @@ if __name__ == "__main__":
 
         # Perform the actual check and suggest next words
         # TODO: Display statistics here
-        if b.check(GUESS.lower(), RESULTS):
+        if b.submit_guess(GUESS.lower(), RESULTS):
             print(f"\nCongrats! You solved the Wordle in {GUESS_COUNT} attempts! Final Answer = {GUESS}")
             break
 
