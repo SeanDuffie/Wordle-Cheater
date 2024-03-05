@@ -122,21 +122,35 @@ class Tester:
         if guess_count > 6:
             print(f"Solved [{solution}] in [{guess_count}] attempts, using [{start}] as a starting word!")
 
+        return guess_count
+
     def permutations(self):
         """ Runs through all the permutations of starting word compared to solution
 
             All other logic should be handled in the WordBank class
             TODO: Store results in a database
         """
+        headers = ["First"]
+        headers.extend(self.word_options["Words"])
+        df = pd.DataFrame(columns=headers)
+
         # Loop through all starting words
         for start in self.word_options["Words"]:
+            headers.append(start)
+            row = [start]
+
             # Loop through all potential solutions
             for solution in self.word_options["Words"]:
-                self.play(start=start, solution=solution, manual=False)
+                row.append(self.play(start=start, solution=solution, manual=False))
+
+            df.loc[len(df.index)] = row
+
+        print(df)
 
 
 if __name__ == "__main__":
     t1 = Tester()
 
     t1.permutations()
-    # t1.play(start="crane", rand_sol=True, manual=True)
+    # t1.play(start="crane", solution="flame", manual=False)
+    # t1.play(start="crane", solution=None, manual=True)
