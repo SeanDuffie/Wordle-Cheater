@@ -151,6 +151,6 @@ class Tester:
 if __name__ == "__main__":
     t1 = Tester()
 
-    t1.permutations()
-    # t1.play(start="crane", solution="flame", manual=False)
-    # t1.play(start="crane", solution=None, manual=True)
+    # t1.permutations()
+    print(t1.play(start="crane", solution="hunch", manual=True))
+    # print(t1.play(start="crane", solution=None, manual=True))
