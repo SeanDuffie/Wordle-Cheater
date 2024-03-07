@@ -10,6 +10,7 @@ import os
 import pandas as pd
 from word_bank import WordBank
 import random
+import numpy as np
 
 
 RTDIR = os.path.dirname(__file__)
@@ -118,9 +119,9 @@ class Tester:
             if manual:
                 guess = input(f"Enter guess #{guess_count+1}: ")
 
-        # Objective failed, continue solving for average statistics, but mark as failure
-        if guess_count > 6:
-            print(f"Solved [{solution}] in [{guess_count}] attempts, using [{start}] as a starting word!")
+        # # Objective failed, continue solving for average statistics, but mark as failure
+        # if guess_count > 6:
+        #     print(f"Solved [{solution}] in [{guess_count}] attempts, using [{start}] as a starting word!")
 
         return guess_count
 
@@ -134,23 +135,46 @@ class Tester:
         headers.extend(self.word_options["Words"])
         df = pd.DataFrame(columns=headers)
 
+        other_headers = ["Start", "Average Score", "Min Score", "Max Score", "Failure Count", "Failures"]
+        df2 = pd.DataFrame(columns=other_headers)
+
         # Loop through all starting words
-        for start in self.word_options["Words"]:
+        start_perm = datetime.datetime.now()
+        for start in ["crane", "shale", "aegis"]: #self.word_options["Words"]:
             headers.append(start)
             row = [start]
+            failed = []
 
+            start_word = datetime.datetime.now()
             # Loop through all potential solutions
             for solution in self.word_options["Words"]:
-                row.append(self.play(start=start, solution=solution, manual=False))
+                count = self.play(start=start, solution=solution, manual=False)
+
+                row.append(count)
+
+                if count > 6:
+                    failed.append((solution, count))
+
+            stop_word = datetime.datetime.now()
+            rrow = np.array(row[1:])
+            print(f"Took {stop_word-start_word} seconds to process {start}")
+            print(f"{start} scored an average of {rrow.mean()} and failed {len(failed)} times")
+
+            row2 = [start, rrow.mean(), rrow.min(), rrow.max(), len(failed), failed]
 
             df.loc[len(df.index)] = row
+            df2.loc[len(df2.index)] = row2
+
+        stop_perm = datetime.datetime.now()
+        print(f"Took {stop_perm-start_perm} seconds to complete the permutations")
 
         print(df)
+        print(df2)
 
 
 if __name__ == "__main__":
     t1 = Tester()
 
-    # t1.permutations()
-    print(t1.play(start="crane", solution="hunch", manual=True))
+    t1.permutations()
+    # print(t1.play(start="crane", solution="hunch", manual=True))
     # print(t1.play(start="crane", solution=None, manual=True))
