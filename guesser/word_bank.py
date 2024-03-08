@@ -202,12 +202,16 @@ class WordBank:
     def solution_odds(self, word: str, alphabet: dict) -> float:
         """ Calculate the probability weight of each word in the remaining word bank options
 
+        FIXME: This double counts the probability of repeating letters, while not always a problem, this likely reduces average accuracy
+            - Factor in a separate count that just checks if the word contains a letter rather than total count
+            - Factor in a separate count that checks per slot instead
+
         Args:
-            word (str): _description_
-            alphabet (dict): a dictionary of all letters and the count of times that 
+            word (str): The current word that is being analyzed
+            alphabet (dict): a dictionary of all letters and percentage of occurences they have in the remaining word bank
 
         Returns:
-            _type_: _description_
+            float: probability that the current word is the solution
         """
         odds = 1
 
@@ -240,13 +244,9 @@ class WordBank:
             if self.confirmed[i] != word[i]:
                 # If it's confirmed, but mismatched, then reject the word
                 if self.confirmed[i] != "":
-                    # if self.debug:
-                    #     print(f"Rejecting word because it mismatches known character @{i}({word[i]}): {word}")
                     return False
                 # Second, check to see if any letters were rejected
                 if word[i] in self.rejected[i]:
-                    # if self.debug:
-                    #     print(f"Rejecting word because it contains a rejected character @{i}({word[i]}): {word} | {self.rejected[i]}")
                     return False
         # Finally, check to see that the word contains at least one of each possible letter
         for c in self.possible:
