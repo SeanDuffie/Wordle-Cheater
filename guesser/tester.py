@@ -140,7 +140,7 @@ class Tester:
 
         # Loop through all starting words
         start_perm = datetime.datetime.now()
-        for start in ["crane", "shale", "aegis"]: #self.word_options["Words"]:
+        for start in self.word_options["Words"]:
             headers.append(start)
             row = [start]
             failed = []
@@ -167,6 +167,12 @@ class Tester:
 
         stop_perm = datetime.datetime.now()
         print(f"Took {stop_perm-start_perm} seconds to complete the permutations")
+
+        # df.sort_values(by=["Odds", ""], ascending=False, inplace=True, ignore_index=True)
+        df2.sort_values(by=["Average Score", "Failure Count"], ascending=True, inplace=True, ignore_index=True)
+
+        df.to_csv(path_or_buf="./permutations_full.csv", index=False)
+        df2.to_csv(path_or_buf="./permutation_stats.csv", index=False)
 
         print(df)
         print(df2)
