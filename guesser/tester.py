@@ -80,6 +80,7 @@ class Tester:
         # Initialize wordbank and guess count, debug controls suppression of prints
         wb = WordBank(debug=manual)
         guess_count = 1
+        guesses = [start]
 
         # If the solution is not defined, generate a random one
         if rand_sol:
@@ -108,6 +109,7 @@ class Tester:
             if solution is None:
                 result = input("What were the results? (2=green, 1=yellow, 0=grey) (ex. '02001'): ")
             else:
+                guesses.append(guess)
                 result = check(guess, solution)
 
             # Check if the user won
@@ -123,7 +125,7 @@ class Tester:
         # if guess_count > 6:
         #     print(f"Solved [{solution}] in [{guess_count}] attempts, using [{start}] as a starting word!")
 
-        return guess_count
+        return guess_count, guesses
 
     def permutations(self):
         """ Runs through all the permutations of starting word compared to solution
@@ -148,12 +150,12 @@ class Tester:
             start_word = datetime.datetime.now()
             # Loop through all potential solutions
             for solution in self.word_options["Words"]:
-                count = self.play(start=start, solution=solution, manual=False)
+                count, guesses = self.play(start=start, solution=solution, manual=False)
 
                 row.append(count)
 
                 if count > 6:
-                    failed.append((solution, count))
+                    failed.append((solution, count, guesses))
 
             stop_word = datetime.datetime.now()
             rrow = np.array(row[1:])
