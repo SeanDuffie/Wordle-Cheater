@@ -106,10 +106,10 @@ class Tester:
             guess_count += 1
 
             # If the solution is unknown, prompt user for results, otherwise generate them
+            guesses.append(guess)
             if solution is None:
                 result = input("What were the results? (2=green, 1=yellow, 0=grey) (ex. '02001'): ")
             else:
-                guesses.append(guess)
                 result = check(guess, solution)
 
             # Check if the user won
@@ -184,5 +184,5 @@ if __name__ == "__main__":
     t1 = Tester()
 
     # t1.permutations()
-    print(t1.play(start="caste", solution="early", manual=True))
-    # print(t1.play(start="caste", solution=None, manual=True))
+    # print(t1.play(start="caste", solution="early", manual=True))
+    print(t1.play(start="caste", solution=None, manual=True))
