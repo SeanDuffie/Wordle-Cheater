@@ -6,12 +6,11 @@ Returns:
 
 import datetime
 import os
+import random
 
+import numpy as np
 import pandas as pd
 from word_bank import WordBank
-import random
-import numpy as np
-
 
 RTDIR = os.path.dirname(__file__)
 
@@ -111,6 +110,7 @@ class Tester:
                 result = input("What were the results? (2=green, 1=yellow, 0=grey) (ex. '02001'): ")
             else:
                 result = check(guess, solution)
+            print(f"Guessing '{guess}' for results '{result}' on attempt {guess_count}")
 
             # Check if the user won
             if result == "22222":
@@ -120,10 +120,6 @@ class Tester:
             guess = wb.submit_guess(guess, result)
             if manual:
                 guess = input(f"Enter guess #{guess_count+1}: ")
-
-        # # Objective failed, continue solving for average statistics, but mark as failure
-        # if guess_count > 6:
-        #     print(f"Solved [{solution}] in [{guess_count}] attempts, using [{start}] as a starting word!")
 
         return guess_count, guesses
 
