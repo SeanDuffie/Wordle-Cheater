@@ -106,19 +106,35 @@ class WordBank:
             return "Failed"
 
         # Sort database based on probability of remaining options
-        alphabet = self.generate_probs()
-        self.word_bank["Odds"] = self.word_bank["Words"].apply(func=self.solution_odds, args=(alphabet,))
-        self.word_bank.sort_values(by=["Odds"], ascending=False, inplace=True, ignore_index=True)
+        tot_alpha, con_alpha, slot_alpha = self.generate_probs()
+        self.word_bank["Cumul Odds"] = self.word_bank["Words"].apply(func=self.solution_odds, args=(tot_alpha,))
+        self.word_bank["Unique Odds"] = self.word_bank["Words"].apply(func=self.solution_odds, args=(con_alpha,))
+        self.word_bank["Slot Odds"] = self.word_bank["Words"].apply(func=self.solution_odds, args=(slot_alpha,True))
+
+        # Combine all of the odds
+        def sum_cats(row):
+            return row["Cumul Odds"] * row["Unique Odds"] * row["Slot Odds"]
+        self.word_bank["Total Odds"] = self.word_bank.apply(func=sum_cats, axis=1)
+
+        self.word_bank.sort_values(by=["Cumul Odds"], ascending=False, inplace=True, ignore_index=True)
+        word1 = self.word_bank["Words"][0]
+        self.word_bank.sort_values(by=["Unique Odds"], ascending=False, inplace=True, ignore_index=True)
+        word2 = self.word_bank["Words"][0]
+        self.word_bank.sort_values(by=["Slot Odds"], ascending=False, inplace=True, ignore_index=True)
+        word3 = self.word_bank["Words"][0]
+        self.word_bank.sort_values(by=["Total Odds"], ascending=False, inplace=True, ignore_index=True)
+        word4 = self.word_bank["Words"][0]
         if self.debug:
+            print(f"Cumul sug: {word1},\t Unique sug: {word2},\t Slot sug: {word3},\t Total sug: {word4}")
             print(self.word_bank)
 
-        # Print out the next options for the user to pick
-        if self.debug:
-            options = "\nNew Options Generated: "
-            for choice in self.word_bank["Words"]:
-                options += choice + ", "
-            print(options[:-2])
-            print()
+        # # Print out the next options for the user to pick
+        # if self.debug:
+        #     options = "\nNew Options Generated: "
+        #     for choice in self.word_bank["Words"]:
+        #         options += choice + ", "
+        #     print(options[:-2])
+        #     print()
 
         return self.word_bank["Words"][0]
 
@@ -129,7 +145,7 @@ class WordBank:
             _type_: _description_
         """
         # Dictionary of all letters in the alphabet, and the percentage of occurances
-        alphabet = {
+        total_alphabet = {
             "a": 0,
             "b": 0,
             "c": 0,
@@ -157,76 +173,84 @@ class WordBank:
             "y": 0,
             "z": 0
         }
-
-        # Initialize all the containers and sizes
-        total = self.word_bank["Words"].size * 5
-        # if self.debug:
-        #     print(f"Choosing from {self.word_bank['Words'].size} options...")
-        bank = [alphabet.copy(),alphabet.copy(),alphabet.copy(),alphabet.copy(),alphabet.copy()]
-        count = [0, 0, 0, 0, 0]
+        # Copy of alphabet dictionary that will only count the first occurance of each letter
+        contains_alphabet = total_alphabet.copy()
+        # Contains an alphabet dictionary for each slot in the word
+        slot_alphabet = [ total_alphabet.copy() for _ in range(5) ]
 
         for word in self.word_bank["Words"]:
+            processed = ""
             for i in range(5):
                 # if self.confirmed[i] == "":
                 letter = word[i]
 
-                alphabet[letter] += 1
-                bank[i][letter] += 1
-                count[i] += 1
+                # Count occurances of each letter in the remaining options. Good for presence. (1)
+                total_alphabet[letter] += 1
 
-        # print(f"Total letters: {total}")
-        # print(f"Total Odds: {alphabet}")
+                # Similar to above, but slot specific. This is better for correct placement. (2)
+                slot_alphabet[i][letter] += 1
 
+                # Only count the first occurance of each letter. Different statistic for duplicates
+                if letter not in processed:
+                    contains_alphabet[letter] += 1
+                    processed += letter
 
+        # # Iterate over letters an additional time
         # for i in range(5):
-        #     print(f"Slot {i}: {bank[i]}")
+        #     # If letter is confirmed, skip it
+        #     if self.confirmed[i] == "":
+        #         # Iterate through statistics dictionary
+        #         for key, val in slot_alphabet[i].items():
+        #             # If all remaining options have the same letter, confirm it
+        #             if val > 0 and val == sum(slot_alphabet[i].values()):
+        #                 self.confirmed[i] = key
 
-        # Iterate over
-        for i in range(5):
-            if self.confirmed[i] == "":
-                # print(f"Slot {i+1} predicted: ")
-                for key, val in bank[i].items():
-                    if val != 0:
-                        if count[i] > 0:
-                            # If all remaining options have the same letter, confirm it
-                            if val == count[i]:
-                                self.confirmed[i] = key
+        return total_alphabet, contains_alphabet, slot_alphabet
 
-        # print("Total Options:")
-        # for key, val in alphabet.items():
-        #     if val > 0 and key not in self.possible:
-        #         print(f"\t{key} = {val*100/total}%")
-
-        return alphabet
-
-    def solution_odds(self, word: str, alphabet: dict) -> float:
+    def solution_odds(self, word: str, alphabet: dict, slot: bool = False) -> float:
         """ Calculate the probability weight of each word in the remaining word bank options
 
         FIXME: This double counts the probability of repeating letters, while not always a problem, this likely reduces average accuracy
             - Factor in a separate count that just checks if the word contains a letter rather than total count
             - Factor in a separate count that checks per slot instead
+        TODO: I've added the alternate probability options, but they can all be applied simulaneously to save time iterating
 
         Args:
             word (str): The current word that is being analyzed
             alphabet (dict): a dictionary of all letters and percentage of occurences they have in the remaining word bank
+            slot (bool): whether the input alphabet is per slot or cumulative
 
         Returns:
-            float: probability that the current word is the solution
+            float: the percentage of value that the word has in narrowing down the options
         """
-        odds = 1
+        odds = 100
 
-        # 
-        count = sum(alphabet.values())
-        # if self.debug:
-        #     print(f"Analyzing word: {word}")
+        if slot:
+            count = [0, 0, 0, 0, 0]
+            for i in range(5):
+                count[i] = sum(alphabet[i].values())
+            # print(f"\t{word}: {count=} | {alphabet[0][word[0]]} | {alphabet[1][word[1]]} | {alphabet[2][word[2]]} | {alphabet[3][word[3]]} | {alphabet[4][word[4]]}")
+        else:
+            # Total letters that were counted
+            count = sum(alphabet.values())
+            # print(f"\t{word}: {count=} | {alphabet[word[0]]} | {alphabet[word[1]]} | {alphabet[word[2]]} | {alphabet[word[3]]} | {alphabet[word[4]]}")
+
         for i in range(5):
+            letter = word[i]
+
             # If the letter is already confirmed, it shouldn't affect the odds
             if self.confirmed[i] == "":
-                # if self.debug:
-                #     print(f"\t{word[i]} has a chance of {alphabet[word[i]]*100/count}")
-                odds *= alphabet[ word[i] ] / count
+                # If the statistics were gathered per slot, calculate accordingly
+                if slot:
+                    odds *= alphabet[i][letter] / count[i]
+                    # print(f"\tSlot Count = {alphabet[i][letter]} / {count[i]}")
+                else:
+                    # TODO: Improve here
+                    odds *= alphabet[letter] / count
+                    # print(f"\tNorm Count = {alphabet[letter]} / {count}")
+            # print(f"\tOdds after {letter}: {odds}")
 
-        return odds * 100
+        return odds
 
     def search(self, word: str):
         """ Helper function to be applied on the wordbank dataframe
