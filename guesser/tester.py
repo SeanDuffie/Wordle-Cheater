@@ -114,10 +114,10 @@ class Tester:
             # If the solution is unknown, prompt user for results, otherwise generate them
             guesses.append(guess)
             if solution is None:
-                result = input("What were the results? (2=green, 1=yellow, 0=grey) (ex. '02001'): ")
+                result = input(f"What were the results for '{guess}'? (2=green, 1=yellow, 0=grey) (ex. '02001'): ")
             else:
                 result = check(guess, solution)
-            print(f"Guessing '{guess}' for results '{result}' on attempt {guess_count}")
+            print(f"Guessing '{guess}' with results '{result}' on attempt {guess_count}")
 
             # Check if the user won
             if result == "22222":
