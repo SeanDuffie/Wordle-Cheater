@@ -25,15 +25,22 @@ def check(guess: str, solution: str) -> str:
     Returns:
         str: Formatted results string that compares the solution with the guess
     """
-    result = ""
+    result = "00000"
 
+    # First, eliminate all letters known to be correct
     for i in range(5):
         if guess[i] == solution[i]:
-            result += "2"
-        elif guess[i] in solution:
-            result += "1"
-        else:
-            result += "0"
+            result = result[:i] + "2" + result[i+1:]
+            guess = guess[:i] + " " + guess[i+1:]
+            solution = solution[:i] + " " + solution[i+1:]
+        # print(f"{guess=} | {solution=} | {result=}")
+
+    # Next, identify all the characters that are present but not in the correct spot
+    # Doing it this way allows 
+    for i in range(5):
+        if guess[i] in solution and guess[i] != " ":
+            result = result[:i] + "1" + result[i+1:]
+        # print(f"{guess=} | {solution=} | {result=}")
 
     return result
 
@@ -180,5 +187,5 @@ if __name__ == "__main__":
     t1 = Tester()
 
     # t1.permutations()
-    # print(t1.play(start="caste", solution="early", manual=True))
-    print(t1.play(start="caste", solution=None, manual=True))
+    print(t1.play(start="caste", solution="toxin", manual=True))
+    # print(t1.play(start="caste", solution=None, manual=True))
