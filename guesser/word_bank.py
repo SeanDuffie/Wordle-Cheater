@@ -232,6 +232,9 @@ class WordBank:
         """ Helper function to be applied on the wordbank dataframe
 
         TODO: Optimizations could be made here to make the search more accurate
+        TODO: Handle duplicate letters
+        TODO: Calculate probably based on letters in specific locations
+        TODO: Calculate probability 
 
         Args:
             word (str): input string that is being compared
