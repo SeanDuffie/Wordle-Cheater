@@ -7,6 +7,7 @@ Returns:
 import datetime
 import os
 import random
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -75,7 +76,8 @@ class Tester:
         mask = file["Words"].apply(valid_word)
         return file[mask].reset_index(drop=True)
 
-    def play(self, start: str = "crane", solution: str = None, rand_sol: bool = False, manual: bool = False):
+    def play(self, start: str = "crane", solution: str = None, rand_sol: bool = False,
+             manual: bool = False, method: Literal['cum', 'uni', 'slo', 'tot'] = 'tot'):
         """ Controls the actual play process of the game
 
         Args:
@@ -94,13 +96,14 @@ class Tester:
 
         # If the solution is unknown, prompt user for results, otherwise generate them
         if solution is None:
-            result = input("What were the results? (2=green, 1=yellow, 0=grey) (ex. '02001'): ")
+            result = input(f"What were the results for '{start}'? (2=green, 1=yellow, 0=grey) (ex. '02001'): ")
         else:
             result = check(start, solution)
 
         # If playing manually, get next guess from user, otherwise generate next guess
-        guess = wb.submit_guess(start, result)
+        guess = wb.submit_guess(start, result, method)
         if manual:
+            print(wb.word_bank)
             guess = input(f"Enter guess #{guess_count+1}: ")
 
         # Loop until the solution is found
@@ -117,20 +120,22 @@ class Tester:
                 result = input(f"What were the results for '{guess}'? (2=green, 1=yellow, 0=grey) (ex. '02001'): ")
             else:
                 result = check(guess, solution)
-            print(f"Guessing '{guess}' with results '{result}' on attempt {guess_count}")
+            if manual:
+                print(wb.word_bank)
+                print(f"[{solution}]: Guessing '{guess}' with results '{result}' on attempt {guess_count}")
 
             # Check if the user won
             if result == "22222":
                 break
 
             # If playing manually, get next guess from user, otherwise generate next guess
-            guess = wb.submit_guess(guess, result)
+            guess = wb.submit_guess(guess, result, method)
             if manual:
                 guess = input(f"Enter guess #{guess_count+1}: ")
 
         return guess_count, guesses
 
-    def permutations(self):
+    def permutations(self, method: Literal['cum', 'uni', 'slo', 'tot'] = 'tot'):
         """ Runs through all the permutations of starting word compared to solution
 
             All other logic should be handled in the WordBank class
@@ -145,7 +150,7 @@ class Tester:
 
         # Loop through all starting words
         start_perm = datetime.datetime.now()
-        for start in self.word_options["Words"]:
+        for start in self.word_options["Words"]: # ['caste', 'crane', 'worst', 'aegis']: #
             headers.append(start)
             row = [start]
             failed = []
@@ -153,7 +158,7 @@ class Tester:
             start_word = datetime.datetime.now()
             # Loop through all potential solutions
             for solution in self.word_options["Words"]:
-                count, guesses = self.play(start=start, solution=solution, manual=False)
+                count, guesses = self.play(start=start, solution=solution, manual=False, method=method)
 
                 row.append(count)
 
@@ -176,16 +181,18 @@ class Tester:
         # df.sort_values(by=["Odds", ""], ascending=False, inplace=True, ignore_index=True)
         df2.sort_values(by=["Average Score", "Failure Count"], ascending=True, inplace=True, ignore_index=True)
 
-        df.to_csv(path_or_buf="./permutations_full.csv", index=False)
-        df2.to_csv(path_or_buf="./permutation_stats.csv", index=False)
+        df.to_csv(path_or_buf=f"./permutations_{method}_full.csv", index=False)
+        df2.to_csv(path_or_buf=f"./permutation_{method}_stats.csv", index=False)
 
-        print(df)
         print(df2)
 
 
 if __name__ == "__main__":
     t1 = Tester()
 
-    # t1.permutations()
-    print(t1.play(start="caste", solution="toxin", manual=True))
-    # print(t1.play(start="caste", solution=None, manual=True))
+    # t1.permutations(method='cum')
+    # t1.permutations(method='uni')
+    # t1.permutations(method='slo')
+    # t1.permutations(method='tot')
+    # print(t1.play(start="caste", solution="toxin", manual=True))
+    print(t1.play(start="caste", solution=None, manual=True))
