@@ -1,7 +1,7 @@
 """_summary_
 
-Returns:
-    _type_: _description_
+TODO: Test switching method mid round
+TODO: If a method/starting word combo have a low amount of failures, maybe guessing one of the failures first can get you there faster?
 """
 
 import datetime
