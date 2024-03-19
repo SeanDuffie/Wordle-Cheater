@@ -10,6 +10,7 @@
 """
 import datetime
 import os
+from typing import Literal
 
 import pandas as pd
 
@@ -56,7 +57,7 @@ class WordBank:
         mask = file["Words"].apply(valid_word)
         return file[mask].reset_index(drop=True)
 
-    def submit_guess(self, word: str, res: str) -> str:
+    def submit_guess(self, word: str, res: str, method: Literal['cum', 'uni', 'slo', 'tot']) -> str:
         """ Update the database off of recent guess, then select the next most likely
         (or most productive) option to make progress
 
@@ -105,36 +106,42 @@ class WordBank:
             print("Error! No more options!")
             return "Failed"
 
-        # Sort database based on probability of remaining options
+        # Calculate the probability of remaining options and append as a column (based on config)
         tot_alpha, con_alpha, slot_alpha = self.generate_probs()
-        self.word_bank["Cumul Odds"] = self.word_bank["Words"].apply(func=self.solution_odds, args=(tot_alpha,))
-        self.word_bank["Unique Odds"] = self.word_bank["Words"].apply(func=self.solution_odds, args=(con_alpha,))
-        self.word_bank["Slot Odds"] = self.word_bank["Words"].apply(func=self.solution_odds, args=(slot_alpha,True))
+        if method in ['cum', 'tot']:
+            self.word_bank["Cumul Odds"] = self.word_bank["Words"].apply(func=self.solution_odds, args=(tot_alpha,))
+        if method in ['uni', 'tot']:
+            self.word_bank["Unique Odds"] = self.word_bank["Words"].apply(func=self.solution_odds, args=(con_alpha,))
+        if method in ['slo', 'tot']:
+            self.word_bank["Slot Odds"] = self.word_bank["Words"].apply(func=self.solution_odds, args=(slot_alpha,True))
 
-        # Combine all of the odds
-        def sum_cats(row):
-            return row["Cumul Odds"] * row["Unique Odds"] * row["Slot Odds"]
-        self.word_bank["Total Odds"] = self.word_bank.apply(func=sum_cats, axis=1)
+        # If combining configurations, generate a new column will all other data
+        if method == 'tot':
+            # Combine all of the odds
+            def sum_cats(row):
+                return row["Cumul Odds"] * row["Unique Odds"] * row["Slot Odds"]
+            self.word_bank["Total Odds"] = self.word_bank.apply(func=sum_cats, axis=1)
 
-        self.word_bank.sort_values(by=["Cumul Odds"], ascending=False, inplace=True, ignore_index=True)
-        word1 = self.word_bank["Words"][0]
-        self.word_bank.sort_values(by=["Unique Odds"], ascending=False, inplace=True, ignore_index=True)
-        word2 = self.word_bank["Words"][0]
-        self.word_bank.sort_values(by=["Slot Odds"], ascending=False, inplace=True, ignore_index=True)
-        word3 = self.word_bank["Words"][0]
-        self.word_bank.sort_values(by=["Total Odds"], ascending=False, inplace=True, ignore_index=True)
-        word4 = self.word_bank["Words"][0]
+        # Sort the Dataframe based on configuration
+        if method == 'cum':
+            self.word_bank.sort_values(by=["Cumul Odds"], ascending=False, inplace=True, ignore_index=True)
+            word1 = self.word_bank["Words"][0]
+        elif method == 'uni':
+            self.word_bank.sort_values(by=["Unique Odds"], ascending=False, inplace=True, ignore_index=True)
+            word2 = self.word_bank["Words"][0]
+        elif method == 'slo':
+            self.word_bank.sort_values(by=["Slot Odds"], ascending=False, inplace=True, ignore_index=True)
+            word3 = self.word_bank["Words"][0]
+        elif method == 'tot':
+            self.word_bank.sort_values(by=["Total Odds"], ascending=False, inplace=True, ignore_index=True)
+            word4 = self.word_bank["Words"][0]
+        else:
+            print("Invalid probability calculation configuration!")
+
+        # Print results to user if they are actively participating
         if self.debug:
-            print(f"Cumul sug: {word1},\t Unique sug: {word2},\t Slot sug: {word3},\t Total sug: {word4}")
             print(self.word_bank)
-
-        # # Print out the next options for the user to pick
-        # if self.debug:
-        #     options = "\nNew Options Generated: "
-        #     for choice in self.word_bank["Words"]:
-        #         options += choice + ", "
-        #     print(options[:-2])
-        #     print()
+            print(f"Cumul sug: {word1},\t Unique sug: {word2},\t Slot sug: {word3},\t Total sug: {word4}")
 
         return self.word_bank["Words"][0]
 
@@ -309,7 +316,7 @@ if __name__ == "__main__":
             break
 
         # Perform the actual check and suggest next words
-        guess_response = b.submit_guess(GUESS.lower(), RESULTS)
+        guess_response = b.submit_guess(word=GUESS.lower(), res=RESULTS, method='tot')
 
         if guess_response == "Failed":
             print("Something went wrong!")
