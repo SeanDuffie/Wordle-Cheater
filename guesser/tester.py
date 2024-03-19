@@ -145,38 +145,39 @@ class Tester:
         headers.extend(self.word_options["Words"])
         df = pd.DataFrame(columns=headers)
 
-        other_headers = ["Start", "Average Score", "Min Score", "Max Score", "Failure Count", "Failures"]
+        other_headers = ["Time", "Start", "Average Score", "Min Score", "Max Score", "Failure Count", "Failures"]
         df2 = pd.DataFrame(columns=other_headers)
 
         # Loop through all starting words
-        start_perm = datetime.datetime.now()
-        for start in self.word_options["Words"]: # ['caste', 'crane', 'worst', 'aegis']: #
-            headers.append(start)
-            row = [start]
+        time_start_perm = datetime.datetime.now()
+        for start_word in self.word_options["Words"]: # ['caste', 'crane', 'worst', 'aegis']: #
+            headers.append(start_word)
+            row = [start_word]
             failed = []
 
-            start_word = datetime.datetime.now()
+            time_start_word = datetime.datetime.now()
             # Loop through all potential solutions
             for solution in self.word_options["Words"]:
-                count, guesses = self.play(start=start, solution=solution, manual=False, method=method)
+                count, guesses = self.play(start=start_word, solution=solution, manual=False, method=method)
 
                 row.append(count)
 
                 if count > 6:
                     failed.append((solution, count, guesses))
 
-            stop_word = datetime.datetime.now()
+            time_stop_word = datetime.datetime.now()
             rrow = np.array(row[1:])
-            print(f"Took {stop_word-start_word} seconds to process {start}")
-            print(f"{start} scored an average of {rrow.mean()} and failed {len(failed)} times")
+            word_time = time_stop_word-time_start_word
+            print(f"Took {word_time} seconds to process {start_word}")
+            print(f"{start_word} scored an average of {rrow.mean()} and failed {len(failed)} times")
 
-            row2 = [start, rrow.mean(), rrow.min(), rrow.max(), len(failed), failed]
+            row2 = [word_time, start_word, rrow.mean(), rrow.min(), rrow.max(), len(failed), failed]
 
             df.loc[len(df.index)] = row
             df2.loc[len(df2.index)] = row2
 
-        stop_perm = datetime.datetime.now()
-        print(f"Took {stop_perm-start_perm} seconds to complete the permutations")
+        time_stop_perm = datetime.datetime.now()
+        print(f"Took {time_stop_perm-time_start_perm} seconds to complete the permutations")
 
         # df.sort_values(by=["Odds", ""], ascending=False, inplace=True, ignore_index=True)
         df2.sort_values(by=["Average Score", "Failure Count"], ascending=True, inplace=True, ignore_index=True)
@@ -193,6 +194,6 @@ if __name__ == "__main__":
     # t1.permutations(method='cum')
     # t1.permutations(method='uni')
     # t1.permutations(method='slo')
-    # t1.permutations(method='tot')
+    t1.permutations(method='tot')
     # print(t1.play(start="caste", solution="toxin", manual=True))
-    print(t1.play(start="caste", solution=None, manual=True))
+    # print(t1.play(start="caste", solution=None, manual=True))

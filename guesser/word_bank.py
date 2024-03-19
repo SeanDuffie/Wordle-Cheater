@@ -123,25 +123,26 @@ class WordBank:
             self.word_bank["Total Odds"] = self.word_bank.apply(func=sum_cats, axis=1)
 
         # Sort the Dataframe based on configuration
+        words = ["", "", "", ""]
         if method == 'cum':
             self.word_bank.sort_values(by=["Cumul Odds"], ascending=False, inplace=True, ignore_index=True)
-            word1 = self.word_bank["Words"][0]
+            words[0] = self.word_bank["Words"][0]
         elif method == 'uni':
             self.word_bank.sort_values(by=["Unique Odds"], ascending=False, inplace=True, ignore_index=True)
-            word2 = self.word_bank["Words"][0]
+            words[1] = self.word_bank["Words"][0]
         elif method == 'slo':
             self.word_bank.sort_values(by=["Slot Odds"], ascending=False, inplace=True, ignore_index=True)
-            word3 = self.word_bank["Words"][0]
+            words[2] = self.word_bank["Words"][0]
         elif method == 'tot':
             self.word_bank.sort_values(by=["Total Odds"], ascending=False, inplace=True, ignore_index=True)
-            word4 = self.word_bank["Words"][0]
+            words[3] = self.word_bank["Words"][0]
         else:
             print("Invalid probability calculation configuration!")
 
         # Print results to user if they are actively participating
         if self.debug:
             print(self.word_bank)
-            print(f"Cumul sug: {word1},\t Unique sug: {word2},\t Slot sug: {word3},\t Total sug: {word4}")
+            print(f"Cumul sug: {words[0]},\t Unique sug: {words[1]},\t Slot sug: {words[2]},\t Total sug: {words[3]}")
 
         return self.word_bank["Words"][0]
 
