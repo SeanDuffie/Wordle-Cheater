@@ -4,7 +4,7 @@
 
     More features will be added to this in the future, but for now it just reads guesses
     and filters from a wordbank of options
-    
+
     TODO: calculate statistics on which letters are most valuable to identify
     TODO: Guessing logic for automatic picking
 """
@@ -16,6 +16,20 @@ import pandas as pd
 
 RTDIR = os.path.dirname(__file__)
 
+
+def exact_comp(word_list):
+    """_summary_
+
+    Resources:
+        Hamming Distance: https://en.wikipedia.org/wiki/Hamming_distance
+
+    Args:
+        word_list (_type_): _description_
+    """
+    # for word in word_list:
+    #     for i in range(5):
+    #         if 
+    pass
 
 class WordBank:
     """ The WordBank object represents all possible Wordle options
@@ -34,6 +48,11 @@ class WordBank:
         self.rejected = ["", "", "", "", ""]
         # If a letter is identified, but location is unknown (YELLOW), it will be placed here
         self.possible = ""
+
+        # tot_alpha, con_alpha, slot_alpha = self.generate_probs()
+        # self.original_bank["Slot Odds"] = self.original_bank["Words"].apply(func=self.solution_odds, args=(slot_alpha,True))
+        # self.original_bank.sort_values(by=["Slot Odds"], ascending=False, inplace=True, ignore_index=True)
+        # print(self.original_bank)
 
     def read_file(self):
         """ Reads in the word bank downloaded from the interned, then parses for only valid words
