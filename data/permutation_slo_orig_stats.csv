@@ -1,0 +1,2 @@
+Time,Start,Average Score,Min Score,Max Score,Failure Count,Failures
+0 days 00:00:49.598800,flash,3.8332611520138586,1,7,5,"[('boxer', 7, ['flash', 'drier', 'cower', 'poker', 'mover', 'goner', 'boxer']), ('caste', 7, ['flash', 'saute', 'baste', 'paste', 'taste', 'waste', 'caste']), ('graze', 7, ['flash', 'grace', 'grave', 'grate', 'grade', 'grape', 'graze']), ('shave', 7, ['flash', 'share', 'shade', 'shake', 'shame', 'shape', 'shave']), ('watch', 7, ['flash', 'match', 'batch', 'catch', 'hatch', 'patch', 'watch'])]"

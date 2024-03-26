@@ -103,7 +103,7 @@ class Tester:
         # If playing manually, get next guess from user, otherwise generate next guess
         guess = wb.submit_guess(start, result, method)
         if manual:
-            print(wb.word_bank)
+            # print(wb.word_bank)
             guess = input(f"Enter guess #{guess_count+1}: ")
 
         # Loop until the solution is found
@@ -122,7 +122,7 @@ class Tester:
                 result = check(guess, solution)
             if manual:
                 print(wb.word_bank)
-                print(f"[{solution}]: Guessing '{guess}' with results '{result}' on attempt {guess_count}")
+                print(f"[{solution=}]: Guessing '{guess}' with results '{result}' on attempt {guess_count}")
 
             # Check if the user won
             if result == "22222":
@@ -139,19 +139,18 @@ class Tester:
         """ Runs through all the permutations of starting word compared to solution
 
             All other logic should be handled in the WordBank class
-            TODO: Store results in a database
+            TODO: Add multiprocessing here for faster runtimes
         """
-        headers = ["First"]
-        headers.extend(self.word_options["Words"])
-        df = pd.DataFrame(columns=headers)
 
         other_headers = ["Time", "Start", "Average Score", "Min Score", "Max Score", "Failure Count", "Failures"]
         df2 = pd.DataFrame(columns=other_headers)
 
         # Loop through all starting words
         time_start_perm = datetime.datetime.now()
-        for start_word in self.word_options["Words"]: # ['caste', 'crane', 'worst', 'aegis']: #
-            headers.append(start_word)
+        for start_word in ['flash']: # self.word_options["Words"]: # ['flash', 'caste', 'crane', 'worst']: #
+            headers = ["Word", "Count"]
+            df = pd.DataFrame(columns=headers)
+            # TODO: Add multiprocessing here
             row = [start_word]
             failed = []
 
@@ -161,10 +160,12 @@ class Tester:
                 count, guesses = self.play(start=start_word, solution=solution, manual=False, method=method)
 
                 row.append(count)
+                df.loc[len(df.index)] = [solution, count]
 
                 if count > 6:
                     failed.append((solution, count, guesses))
 
+            df.to_csv(path_or_buf=f"{RTDIR}/../data/permutations_{method}_{start_word}_full.csv", index=False)
             time_stop_word = datetime.datetime.now()
             rrow = np.array(row[1:])
             word_time = time_stop_word-time_start_word
@@ -173,7 +174,6 @@ class Tester:
 
             row2 = [word_time, start_word, rrow.mean(), rrow.min(), rrow.max(), len(failed), failed]
 
-            df.loc[len(df.index)] = row
             df2.loc[len(df2.index)] = row2
 
         time_stop_perm = datetime.datetime.now()
@@ -182,8 +182,7 @@ class Tester:
         # df.sort_values(by=["Odds", ""], ascending=False, inplace=True, ignore_index=True)
         df2.sort_values(by=["Average Score", "Failure Count"], ascending=True, inplace=True, ignore_index=True)
 
-        df.to_csv(path_or_buf=f"./permutations_{method}_full.csv", index=False)
-        df2.to_csv(path_or_buf=f"./permutation_{method}_stats.csv", index=False)
+        df2.to_csv(path_or_buf=f"{RTDIR}/../data/permutation_{method}_stats.csv", index=False)
 
         print(df2)
 
@@ -194,6 +193,7 @@ if __name__ == "__main__":
     # t1.permutations(method='cum')
     # t1.permutations(method='uni')
     # t1.permutations(method='slo')
-    t1.permutations(method='tot')
+    # t1.permutations(method='tot')
     # print(t1.play(start="caste", solution="toxin", manual=True))
-    # print(t1.play(start="caste", solution=None, manual=True))
+    # print(t1.play(start="flash", solution="mayor", manual=True, method='slo'))
+    print(t1.play(start="flash", solution=None, manual=True, method='slo'))

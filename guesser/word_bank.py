@@ -23,10 +23,13 @@ class WordBank:
     """
     def __init__(self, debug = False):
         self.debug = debug
-        self.word_bank = self.read_file()
+        self.original_bank = self.read_file()
+        self.word_bank = self.original_bank.copy()
+        self.guess_count = 0
 
         # When a letter is confirmed to a location (GREEN), it will be placed here
         self.confirmed = ["", "", "", "", ""]
+        self.confirmed_count = 0
         # When a letter is rejected (GREY OR YELLOW AT LOCATION), it will be placed here
         self.rejected = ["", "", "", "", ""]
         # If a letter is identified, but location is unknown (YELLOW), it will be placed here
@@ -73,24 +76,39 @@ class WordBank:
         assert len(res) == 5
         assert word.isalpha()
         assert res.isnumeric()
+        self.guess_count += 1
 
         # Parse results and update letter information
         for i, letter in enumerate(word):
             # If the correct letter is in the correct spot
             if res[i] == "2":
                 self.confirmed[i] = letter
+                # In case a duplicate letter occurs before this slot is confirmed, remove the letter from rejected TODO: This or the second?
+                self.rejected[i].replace(letter, "")
             # If the letter is present but in a different spot
             elif res[i] == "1":
                 self.rejected[i] += letter
                 self.possible += letter
             # If the letter is not present (or already confirmed)
             elif res[i] == "0":
-                self.rejected[0] += letter
-                self.rejected[1] += letter
-                self.rejected[2] += letter
-                self.rejected[3] += letter
-                self.rejected[4] += letter
+                # It's possible that a duplicate letter is present, then when the first is accepted and the second is rejected
+                if self.confirmed[0] != letter:
+                    self.rejected[0] += letter
+                if self.confirmed[1] != letter:
+                    self.rejected[1] += letter
+                if self.confirmed[2] != letter:
+                    self.rejected[2] += letter
+                if self.confirmed[3] != letter:
+                    self.rejected[3] += letter
+                if self.confirmed[4] != letter:
+                    self.rejected[4] += letter
                 self.possible.replace(letter, "")
+
+        count = 0
+        for c in self.confirmed:
+            if c != "":
+                count += 1
+        self.confirmed_count = count
 
         # DEBUG: Display all current categories of characters
         if self.debug:
@@ -110,10 +128,16 @@ class WordBank:
         tot_alpha, con_alpha, slot_alpha = self.generate_probs()
         if method in ['cum', 'tot']:
             self.word_bank["Cumul Odds"] = self.word_bank["Words"].apply(func=self.solution_odds, args=(tot_alpha,))
+            # TEMP: test with whole bank
+            self.original_bank["Cumul Odds"] = self.original_bank["Words"].apply(func=self.solution_odds, args=(tot_alpha,))
         if method in ['uni', 'tot']:
             self.word_bank["Unique Odds"] = self.word_bank["Words"].apply(func=self.solution_odds, args=(con_alpha,))
+            # TEMP: test with whole bank
+            self.original_bank["Unique Odds"] = self.original_bank["Words"].apply(func=self.solution_odds, args=(con_alpha,))
         if method in ['slo', 'tot']:
             self.word_bank["Slot Odds"] = self.word_bank["Words"].apply(func=self.solution_odds, args=(slot_alpha,True))
+            # TEMP: test with whole bank
+            self.original_bank["Slot Odds"] = self.original_bank["Words"].apply(func=self.solution_odds, args=(slot_alpha,True))
 
         # If combining configurations, generate a new column will all other data
         if method == 'tot':
@@ -121,36 +145,72 @@ class WordBank:
             def sum_cats(row):
                 return row["Cumul Odds"] * row["Unique Odds"] * row["Slot Odds"]
             self.word_bank["Total Odds"] = self.word_bank.apply(func=sum_cats, axis=1)
+            # TEMP: test with whole bank
+            self.original_bank["Total Odds"] = self.original_bank.apply(func=sum_cats, axis=1)
 
         # Sort the Dataframe based on configuration
         words = ["", "", "", ""]
         if method == 'cum':
             self.word_bank.sort_values(by=["Cumul Odds"], ascending=False, inplace=True, ignore_index=True)
             words[0] = self.word_bank["Words"][0]
+            # TEMP: test with whole bank
+            self.original_bank.sort_values(by=["Cumul Odds"], ascending=False, inplace=True, ignore_index=True)
+            # words[0] = self.original_bank["Words"][0]
         elif method == 'uni':
             self.word_bank.sort_values(by=["Unique Odds"], ascending=False, inplace=True, ignore_index=True)
             words[1] = self.word_bank["Words"][0]
+            # TEMP: test with whole bank
+            self.original_bank.sort_values(by=["Unique Odds"], ascending=False, inplace=True, ignore_index=True)
+            # words[1] = self.original_bank["Words"][0]
         elif method == 'slo':
             self.word_bank.sort_values(by=["Slot Odds"], ascending=False, inplace=True, ignore_index=True)
             words[2] = self.word_bank["Words"][0]
+            # TEMP: test with whole bank
+            self.original_bank.sort_values(by=["Slot Odds"], ascending=False, inplace=True, ignore_index=True)
+            # words[2] = self.original_bank["Words"][0]
         elif method == 'tot':
             self.word_bank.sort_values(by=["Total Odds"], ascending=False, inplace=True, ignore_index=True)
             words[3] = self.word_bank["Words"][0]
+            # TEMP: test with whole bank
+            self.original_bank.sort_values(by=["Total Odds"], ascending=False, inplace=True, ignore_index=True)
+            # words[3] = self.original_bank["Words"][0]
         else:
             print("Invalid probability calculation configuration!")
 
+        if self.confirmed_count == 4 and len(self.word_bank) > 2:
+            print(f"\n{word} | Num_confirmed={self.confirmed_count} | Guess={self.guess_count}")
+            print("Remaining:")
+            print(self.word_bank)
+            print("\nOriginal:")
+            print(self.original_bank)
+
         # Print results to user if they are actively participating
         if self.debug:
+            # TEMP: test with whole bank
+            print("\nOriginal:")
+            print(self.original_bank)
+
+            print("\nRemaining:")
             print(self.word_bank)
             print(f"Cumul sug: {words[0]},\t Unique sug: {words[1]},\t Slot sug: {words[2]},\t Total sug: {words[3]}")
 
         return self.word_bank["Words"][0]
+        # return self.original_bank["Words"][0]
 
     def generate_probs(self):
-        """_summary_
+        """ Generate the value of each individual letter in a word, this will later be used to
+            calculate the value of a word towards narrowing down the remaining options.
+
+        NOTE: This should only be done for remaining words. Word value can be calculated on a word
+                that is known to be wrong, but would ruin the statistics for letter value.
+
+        NOTE: Technically this isn't a probability, all remaining words should have equal
+                probability, but some words will narrow down the remaining options for future
+                guesses more than others on a failed guess, hence the term "value".
 
         Returns:
-            _type_: _description_
+            tuple: contains 3 dictionaries that show (for each letter) the total count, the
+                    count per slot (5), and the amount of words that contain each letter
         """
         # Dictionary of all letters in the alphabet, and the percentage of occurances
         total_alphabet = {
@@ -216,20 +276,34 @@ class WordBank:
         return total_alphabet, contains_alphabet, slot_alphabet
 
     def solution_odds(self, word: str, alphabet: dict, slot: bool = False) -> float:
-        """ Calculate the probability weight of each word in the remaining word bank options
+        """ Calculate the value of a word based on the count of letters in the remaining word bank
+            options. This will be applied on the whole pandas dataframe wordbank
 
-        FIXME: This double counts the probability of repeating letters, while not always a problem, this likely reduces average accuracy
-            - Factor in a separate count that just checks if the word contains a letter rather than total count
-            - Factor in a separate count that checks per slot instead
-        TODO: I've added the alternate probability options, but they can all be applied simulaneously to save time iterating
+        NOTE: Technically this isn't a probability, all remaining words should have equal
+                probability, but some words will narrow down the remaining options for future
+                guesses more than others on a failed guess, hence the term "value".
+
+        TODO: The efficiency of guesses could potentially be improved by guessing a word that is
+                known to be false, but would narrow down the remaining options more. Although one
+                guess is wasted, it could save you from wasting more if several remaining options
+                are similar.
+
+        TODO: I believe that you could also improve the odds calculation by selectively applying
+                the slots calculation on words with duplicate letters. I'm curious to see the
+                impact of slots when the statistics are applied on the original wordbank vs the
+                narrowed wordbank.
+
+        TODO: I've added the alternate probability options, but they can all be applied
+                simulaneously to save time iterating
 
         Args:
             word (str): The current word that is being analyzed
-            alphabet (dict): a dictionary of all letters and percentage of occurences they have in the remaining word bank
+            alphabet (dict): a dictionary of all letters and percentage of occurences they have in
+                                the remaining word bank
             slot (bool): whether the input alphabet is per slot or cumulative
 
         Returns:
-            float: the percentage of value that the word has in narrowing down the options
+            float: the weighted value that the word has in narrowing down the options
         """
         odds = 100
 
@@ -265,8 +339,6 @@ class WordBank:
 
         TODO: Optimizations could be made here to make the search more accurate
         TODO: Handle duplicate letters
-        TODO: Calculate probably based on letters in specific locations
-        TODO: Calculate probability 
 
         Args:
             word (str): input string that is being compared

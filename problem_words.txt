@@ -1,0 +1,6 @@
+flash
+	- boxer - [_o_er] 3 cower [pmgb] [kvnx]
+	- caste - [_aste] 3 baste [ptwc]
+	- graze - [gra_e] 2 grace [vtdpz]
+	- shave - [sha_e] 2 share [dkmpv]
+	- watch - [_atch] 2 match [bchpw]
