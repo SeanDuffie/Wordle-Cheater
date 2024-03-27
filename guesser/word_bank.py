@@ -16,20 +16,31 @@ import pandas as pd
 
 RTDIR = os.path.dirname(__file__)
 
-
-def exact_comp(word_list):
+import difflib
+def exact_comp(word):
     """_summary_
 
     Resources:
+        Stack Overflow: https://stackoverflow.com/questions/682367/good-python-modules-for-fuzzy-string-comparison
         Hamming Distance: https://en.wikipedia.org/wiki/Hamming_distance
+            (Distance of two strings from each other)
+        Smith-Waterman Algorithm: https://en.wikipedia.org/wiki/Smith–Waterman_algorithm
+            (Used for DNA sequences)
+        Levenshtein Distance: https://en.wikipedia.org/wiki/Levenshtein_distance
+            ("Edit Distance": commonly used for spell checking)
+        difflib.SequenceMatcher:
+            calculate ratio similar to Levenshtein Distance
+            built-in, but 
+        JellyFish: https://pypi.python.org/pypi/jellyfish/
+            overkill, but still cool because it includes phonetic matching with other comparisons
+        TheFuzz: https://stackoverflow.com/questions/17388213/find-the-similarity-metric-between-two-strings
+            https://github.com/seatgeek/thefuzz
 
     Args:
         word_list (_type_): _description_
     """
-    # for word in word_list:
-    #     for i in range(5):
-    #         if 
-    pass
+    score = difflib.SequenceMatcher(None, " ower", word).ratio()
+    return score
 
 class WordBank:
     """ The WordBank object represents all possible Wordle options
@@ -48,6 +59,14 @@ class WordBank:
         self.rejected = ["", "", "", "", ""]
         # If a letter is identified, but location is unknown (YELLOW), it will be placed here
         self.possible = ""
+
+        # self.original_bank["Sim Power"] = self.original_bank["Words"].apply(func=exact_comp)
+        # self.original_bank.sort_values(by=["Sim Power"], ascending=False, inplace=True, ignore_index=True)
+        # for row in self.original_bank.iterrows():
+        #     word = row[1]['Words']
+        #     score = row[1]['Sim Power']
+        #     if score >= 0.8:
+        #         print(f"{word} : {score}")
 
         # tot_alpha, con_alpha, slot_alpha = self.generate_probs()
         # self.original_bank["Slot Odds"] = self.original_bank["Words"].apply(func=self.solution_odds, args=(slot_alpha,True))
@@ -384,42 +403,42 @@ class WordBank:
 if __name__ == "__main__":
     # Generate the Wordbank object (This loads the dictionary list)
     b = WordBank(debug=True)
-    GUESS_COUNT = 1
+    # GUESS_COUNT = 1
 
-    # Enter each guess along with the results recieved from Wordle
-    # GUESS = input("Enter first guess: ")
-    GUESS = "crane"
-    # GUESS = input("Invalid entry! Can only be 5 characters and alphabetic! Try again: ")
+    # # Enter each guess along with the results recieved from Wordle
+    # # GUESS = input("Enter first guess: ")
+    # GUESS = "crane"
+    # # GUESS = input("Invalid entry! Can only be 5 characters and alphabetic! Try again: ")
 
-    start = datetime.datetime.now()
-    while GUESS != "q":
-        # Prompt the user for what the results were
-        # TODO: Potentially grab this automatically, either through webscraping or image processing
-        RESULTS = input("What were the results? (2=green, 1=yellow, 0=grey) (ex. '02001'): ")
+    # start = datetime.datetime.now()
+    # while GUESS != "q":
+    #     # Prompt the user for what the results were
+    #     # TODO: Potentially grab this automatically, either through webscraping or image processing
+    #     RESULTS = input("What were the results? (2=green, 1=yellow, 0=grey) (ex. '02001'): ")
 
-        # Check if the user won
-        if RESULTS == "22222":
-            print(f"\nCongrats! You solved the Wordle in {GUESS_COUNT} attempts! Final Answer = {GUESS}")
-            break
+    #     # Check if the user won
+    #     if RESULTS == "22222":
+    #         print(f"\nCongrats! You solved the Wordle in {GUESS_COUNT} attempts! Final Answer = {GUESS}")
+    #         break
 
-        # Check if the user exceeded the guess limit
-        if GUESS_COUNT >= 6:
-            print("\nSorry, you've used all of your guesses")
-            break
+    #     # Check if the user exceeded the guess limit
+    #     if GUESS_COUNT >= 6:
+    #         print("\nSorry, you've used all of your guesses")
+    #         break
 
-        # Perform the actual check and suggest next words
-        guess_response = b.submit_guess(word=GUESS.lower(), res=RESULTS, method='tot')
+    #     # Perform the actual check and suggest next words
+    #     guess_response = b.submit_guess(word=GUESS.lower(), res=RESULTS, method='tot')
 
-        if guess_response == "Failed":
-            print("Something went wrong!")
-            break
-        else:
-            print(f"Suggested Next Guess: {guess_response}")
-            GUESS = guess_response
+    #     if guess_response == "Failed":
+    #         print("Something went wrong!")
+    #         break
+    #     else:
+    #         print(f"Suggested Next Guess: {guess_response}")
+    #         GUESS = guess_response
 
-        # Prompt the user for their next guess
-        # GUESS = input(f"Enter guess #{GUESS_COUNT+1} (or 'q' to quit): ")
-        # GUESS_COUNT += 1
+    #     # Prompt the user for their next guess
+    #     # GUESS = input(f"Enter guess #{GUESS_COUNT+1} (or 'q' to quit): ")
+    #     # GUESS_COUNT += 1
 
-    stop = datetime.datetime.now()
-    print(f"This took {stop-start} seconds")
+    # stop = datetime.datetime.now()
+    # print(f"This took {stop-start} seconds")
