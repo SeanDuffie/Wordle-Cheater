@@ -28,7 +28,7 @@ def check(guess: str, solution: str) -> str:
     """
     result = "00000"
 
-    # First, eliminate all letters known to be correct
+    # First, eliminate all letters known to be correct, mask the correct letters with whitespace
     for i in range(5):
         if guess[i] == solution[i]:
             result = result[:i] + "2" + result[i+1:]
@@ -37,10 +37,15 @@ def check(guess: str, solution: str) -> str:
         # print(f"{guess=} | {solution=} | {result=}")
 
     # Next, identify all the characters that are present but not in the correct spot
-    # Doing it this way allows 
+    # Doing it this way allows you to identify duplicate letters without looping on confirmed
+    # Additionally, only one "possible" duplicate letter should be marked for each duplicate
     for i in range(5):
-        if guess[i] in solution and guess[i] != " ":
+        if guess[i] != " " and guess[i] in solution:
             result = result[:i] + "1" + result[i+1:]
+
+            # Replace the character in solution with whitespace to handle duplicates
+            j = solution.index(guess[i])
+            solution = solution[:j] + " " + solution[j+1:]
         # print(f"{guess=} | {solution=} | {result=}")
 
     return result
@@ -192,8 +197,8 @@ if __name__ == "__main__":
 
     # t1.permutations(method='cum')
     # t1.permutations(method='uni')
-    # t1.permutations(method='slo')
+    t1.permutations(method='slo')
     # t1.permutations(method='tot')
     # print(t1.play(start="caste", solution="toxin", manual=True))
     # print(t1.play(start="flash", solution="mayor", manual=True, method='slo'))
-    print(t1.play(start="flash", solution=None, manual=True, method='slo'))
+    # print(t1.play(start="flash", solution=None, manual=True, method='slo'))
