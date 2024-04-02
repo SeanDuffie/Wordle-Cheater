@@ -121,7 +121,7 @@ class WordBank:
             # If the correct letter is in the correct spot
             if res[i] == "2":
                 self.confirmed[i] = letter
-                # In case a duplicate letter occurs before this slot is confirmed, remove the letter from rejected TODO: This or the second?
+                # In case a duplicate letter occurs before this slot is confirmed, remove the letter from rejected
                 self.rejected[i].replace(letter, "")
             # If the letter is present but in a different spot
             elif res[i] == "1":
@@ -129,18 +129,17 @@ class WordBank:
                 self.possible += letter
             # If the letter is not present (or already confirmed)
             elif res[i] == "0":
-                # It's possible that a duplicate letter is present, then when the first is accepted and the second is rejected
-                if self.confirmed[0] != letter:
-                    self.rejected[0] += letter
-                if self.confirmed[1] != letter:
-                    self.rejected[1] += letter
-                if self.confirmed[2] != letter:
-                    self.rejected[2] += letter
-                if self.confirmed[3] != letter:
-                    self.rejected[3] += letter
-                if self.confirmed[4] != letter:
-                    self.rejected[4] += letter
-                self.possible.replace(letter, "")
+                # TODO: Test and see what happens if the previous duplicate is confirmed
+                # If letter is rejected, it checks for duplicate letters before rejecting all slots
+                loc = word.index(letter)
+                if loc != i and res[loc] in ["1", "2"]:
+                    self.rejected[i] += letter
+                # If there are no duplicate letters, remove from possibilities and reject all slots
+                else:
+                    self.possible.replace(letter, "")
+                    for j in range(5):
+                        if self.confirmed[j] != letter:
+                            self.rejected[j] += letter
 
         count = 0
         for c in self.confirmed:
@@ -165,7 +164,10 @@ class WordBank:
         # Calculate the probability of remaining options and append as a column (based on config)
         tot_alpha, con_alpha, slot_alpha = self.generate_probs()
         if method in ['cum', 'tot']:
-            self.word_bank["Cumul Odds"] = self.word_bank["Words"].apply(func=self.solution_odds, args=(tot_alpha,))
+            self.word_bank["Cumul Odds"] = self.word_bank["Words"].apply(
+                func=self.solution_odds,
+                args=(tot_alpha,)
+            )
             # TEMP: test with whole bank
             self.original_bank["Cumul Odds"] = self.original_bank["Words"].apply(func=self.solution_odds, args=(tot_alpha,))
         if method in ['uni', 'tot']:
