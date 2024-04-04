@@ -197,8 +197,8 @@ if __name__ == "__main__":
 
     # t1.permutations(method='cum')
     # t1.permutations(method='uni')
-    t1.permutations(method='slo')
+    # t1.permutations(method='slo')
     # t1.permutations(method='tot')
     # print(t1.play(start="caste", solution="toxin", manual=True))
     # print(t1.play(start="flash", solution="mayor", manual=True, method='slo'))
-    # print(t1.play(start="flash", solution=None, manual=True, method='slo'))
+    print(t1.play(start="flash", solution=None, manual=True, method='slo'))
