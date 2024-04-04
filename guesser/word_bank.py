@@ -17,7 +17,7 @@ import pandas as pd
 RTDIR = os.path.dirname(__file__)
 
 import difflib
-def exact_comp(word):
+def exact_comp(first_word, second_word):
     """_summary_
 
     Resources:
@@ -39,7 +39,8 @@ def exact_comp(word):
     Args:
         word_list (_type_): _description_
     """
-    score = difflib.SequenceMatcher(None, " ower", word).ratio()
+    # score = difflib.SequenceMatcher(None, " ower", word).ratio()
+    score = difflib.SequenceMatcher(None, first_word, second_word).ratio()
     return score
 
 class WordBank:
@@ -60,13 +61,11 @@ class WordBank:
         # If a letter is identified, but location is unknown (YELLOW), it will be placed here
         self.possible = ""
 
-        # self.original_bank["Sim Power"] = self.original_bank["Words"].apply(func=exact_comp)
-        # self.original_bank.sort_values(by=["Sim Power"], ascending=False, inplace=True, ignore_index=True)
-        # for row in self.original_bank.iterrows():
-        #     word = row[1]['Words']
-        #     score = row[1]['Sim Power']
-        #     if score >= 0.8:
-        #         print(f"{word} : {score}")
+        # problem_words = []
+        # for it, row1 in self.original_bank.iterrows():
+        #     word1 = row1["Words"]
+        #     for row2 in self.original_bank.iterrows():
+        #         word2 = row2["Words"]
 
         # tot_alpha, con_alpha, slot_alpha = self.generate_probs()
         # self.original_bank["Slot Odds"] = self.original_bank["Words"].apply(func=self.solution_odds, args=(slot_alpha,True))
@@ -169,11 +168,9 @@ class WordBank:
                 args=(tot_alpha,)
             )
             # TEMP: test with whole bank
-            self.original_bank["Cumul Odds"] = self.original_bank["Words"].apply(func=self.solution_odds, args=(tot_alpha,))
         if method in ['uni', 'tot']:
             self.word_bank["Unique Odds"] = self.word_bank["Words"].apply(func=self.solution_odds, args=(con_alpha,))
             # TEMP: test with whole bank
-            self.original_bank["Unique Odds"] = self.original_bank["Words"].apply(func=self.solution_odds, args=(con_alpha,))
         if method in ['slo', 'tot']:
             self.word_bank["Slot Odds"] = self.word_bank["Words"].apply(func=self.solution_odds, args=(slot_alpha,True))
             # TEMP: test with whole bank
@@ -185,57 +182,66 @@ class WordBank:
             def sum_cats(row):
                 return row["Cumul Odds"] * row["Unique Odds"] * row["Slot Odds"]
             self.word_bank["Total Odds"] = self.word_bank.apply(func=sum_cats, axis=1)
-            # TEMP: test with whole bank
-            self.original_bank["Total Odds"] = self.original_bank.apply(func=sum_cats, axis=1)
 
         # Sort the Dataframe based on configuration
         words = ["", "", "", ""]
         if method == 'cum':
             self.word_bank.sort_values(by=["Cumul Odds"], ascending=False, inplace=True, ignore_index=True)
             words[0] = self.word_bank["Words"][0]
-            # TEMP: test with whole bank
-            self.original_bank.sort_values(by=["Cumul Odds"], ascending=False, inplace=True, ignore_index=True)
-            # words[0] = self.original_bank["Words"][0]
         elif method == 'uni':
             self.word_bank.sort_values(by=["Unique Odds"], ascending=False, inplace=True, ignore_index=True)
             words[1] = self.word_bank["Words"][0]
-            # TEMP: test with whole bank
-            self.original_bank.sort_values(by=["Unique Odds"], ascending=False, inplace=True, ignore_index=True)
-            # words[1] = self.original_bank["Words"][0]
         elif method == 'slo':
             self.word_bank.sort_values(by=["Slot Odds"], ascending=False, inplace=True, ignore_index=True)
             words[2] = self.word_bank["Words"][0]
-            # TEMP: test with whole bank
-            self.original_bank.sort_values(by=["Slot Odds"], ascending=False, inplace=True, ignore_index=True)
-            # words[2] = self.original_bank["Words"][0]
         elif method == 'tot':
             self.word_bank.sort_values(by=["Total Odds"], ascending=False, inplace=True, ignore_index=True)
             words[3] = self.word_bank["Words"][0]
-            # TEMP: test with whole bank
-            self.original_bank.sort_values(by=["Total Odds"], ascending=False, inplace=True, ignore_index=True)
-            # words[3] = self.original_bank["Words"][0]
         else:
             print("Invalid probability calculation configuration!")
 
-        if self.confirmed_count == 4 and len(self.word_bank) > 2:
-            print(f"\n{word} | Num_confirmed={self.confirmed_count} | Guess={self.guess_count}")
-            print("Remaining:")
-            print(self.word_bank)
-            print("\nOriginal:")
+        def find_bridge(word, char_list):
+            score = 0
+            for l in char_list:
+                if l in word:
+                    score += .2
+            return score
+
+        # TODO: The original bank should only be used to eliminate similar words
+        oddballs = ""
+        flag = False
+        if word == "cower" and res == "02022":
+            oddballs = "pmgbkvnx"
+            flag = True
+        elif word == "baste" and res == "02222":
+            oddballs = "ptwc"
+            flag = True
+        elif word == "grace" and res == "22202":
+            oddballs = "vtdpz"
+            flag = True
+        elif word == "share" and res == "22202":
+            oddballs = "dkmpv"
+            flag = True
+        elif word == "watch" and res == "02222":
+            oddballs = "bchpw"
+            flag = True
+
+        if flag:
+            self.original_bank["Sim"] = self.original_bank["Words"].apply(func=find_bridge, args=(oddballs,))
+            indexSim = self.original_bank[(self.original_bank['Sim'] <= 0.4)].index
+            self.original_bank.drop(indexSim, inplace=True)
+            self.original_bank.sort_values(by=["Sim"], ascending=False, inplace=True, ignore_index=True)
+            print("Detected Potential Similarities!!!")
             print(self.original_bank)
+            return self.original_bank["Words"][0]
 
         # Print results to user if they are actively participating
         if self.debug:
-            # TEMP: test with whole bank
-            print("\nOriginal:")
-            print(self.original_bank)
-
             print("\nRemaining:")
             print(self.word_bank)
             print(f"Cumul sug: {words[0]},\t Unique sug: {words[1]},\t Slot sug: {words[2]},\t Total sug: {words[3]}")
 
         return self.word_bank["Words"][0]
-        # return self.original_bank["Words"][0]
 
     def generate_probs(self):
         """ Generate the value of each individual letter in a word, this will later be used to
@@ -405,6 +411,7 @@ class WordBank:
 if __name__ == "__main__":
     # Generate the Wordbank object (This loads the dictionary list)
     b = WordBank(debug=True)
+    # b.submit_guess(word="     ", res="00000", method="tot")
     # GUESS_COUNT = 1
 
     # # Enter each guess along with the results recieved from Wordle
