@@ -1,5 +1,6 @@
 """_summary_
 
+TODO: Test if statistics are based on number of results left rather than letters eliminated
 TODO: Test switching method mid round
 TODO: If a method/starting word combo have a low amount of failures, maybe guessing one of the failures first can get you there faster?
 TODO: https://stackoverflow.com/questions/53249133/check-if-a-pattern-is-in-a-list-of-words
@@ -102,15 +103,39 @@ class Tester:
 
         # If the solution is unknown, prompt user for results, otherwise generate them
         if solution is None:
-            result = input(f"What were the results for '{start}'? (2=green, 1=yellow, 0=grey) (ex. '02001'): ")
+            while True:
+                try:
+                    result = input(f"What were the results for '{start}'? (2=green, 1=yellow, 0=grey) (ex. '02001'): ")
+                    if not len(result) == 5:
+                        raise ValueError("Invalid Result size, must be 5 digits. Try Again.")
+                    if not result.isnumeric():
+                        raise ValueError("Result must be numerical (no special or letters). Try Again.")
+                    if any(inv_num in result for inv_num in ['3', '4', '5', '6', '7', '8', '9']):
+                        raise ValueError("Result can only contain [0, 1, 2]. Try Again.")
+                    break
+                except ValueError as e:
+                    print(e)
+                    # logger.error(e)
         else:
             result = check(start, solution)
 
         # If playing manually, get next guess from user, otherwise generate next guess
         guess = wb.submit_guess(start, result, method)
         if manual:
-            # print(wb.word_bank)
-            guess = input(f"Enter guess #{guess_count+1}: ")
+            while True:
+                try:
+                    guess = input(f"Enter guess #{guess_count+1}: ")
+                    if not len(guess) == 5:
+                        raise ValueError("Word must be 5 letters long. Try Again.")
+                    if not guess.isalpha():
+                        raise ValueError("Guess must be alphabetical (no special or numbers). Try Again.")
+                    if not self.word_options["Words"].str.contains(guess).any():
+                        print(self.word_options["Words"])
+                        raise ValueError("Word guess must be in the Wordle database. Try Again.")
+                    break
+                except ValueError as e:
+                    print(e)
+                    # logger.error(e)
 
         # Loop until the solution is found
         while result != "22222":
@@ -123,7 +148,19 @@ class Tester:
             # If the solution is unknown, prompt user for results, otherwise generate them
             guesses.append(guess)
             if solution is None:
-                result = input(f"What were the results for '{guess}'? (2=green, 1=yellow, 0=grey) (ex. '02001'): ")
+                while True:
+                    try:
+                        result = input(f"What were the results for '{guess}'? (2=green, 1=yellow, 0=grey) (ex. '02001'): ")
+                        if not len(result) == 5:
+                            raise ValueError("Invalid Result size, must be 5 digits. Try Again.")
+                        if not result.isnumeric():
+                            raise ValueError("Result must be numerical (no special or letters). Try Again.")
+                        if any(inv_num in result for inv_num in ['3', '4', '5', '6', '7', '8', '9']):
+                            raise ValueError("Result can only contain [0, 1, 2]. Try Again.")
+                        break
+                    except ValueError as e:
+                        print(e)
+                        # logger.error(e)
             else:
                 result = check(guess, solution)
             if manual:
@@ -137,7 +174,19 @@ class Tester:
             # If playing manually, get next guess from user, otherwise generate next guess
             guess = wb.submit_guess(guess, result, method)
             if manual:
-                guess = input(f"Enter guess #{guess_count+1}: ")
+                while True:
+                    try:
+                        guess = input(f"Enter guess #{guess_count+1}: ")
+                        if not len(guess) == 5:
+                            raise ValueError("Word must be 5 letters long. Try Again.")
+                        if not guess.isalpha():
+                            raise ValueError("Guess must be alphabetical (no special or numbers). Try Again.")
+                        if not self.word_options["Words"].str.contains(guess).any():
+                            print(self.word_options["Words"])
+                            raise ValueError("Word guess must be in the Wordle database. Try Again.")
+                        break
+                    except ValueError as e:
+                        print(e)
 
         return guess_count, guesses
 
