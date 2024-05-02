@@ -13,19 +13,27 @@
 """
 import discord
 
-client = discord.Client()
+intents = discord.Intents.default()
+intents.message_content = True
+client = discord.Client(intents=intents,)
 
 @client.event
 async def on_ready():
-    print("The bot is ready!")
-    await client.change_presence(game=discord.Game(name="Crushing today's Wordle"))
+    await client.change_presence(
+        activity=discord.Game(name="Today's Wordle")
+    )
 
 @client.event
-async def on_message(message):
+async def on_message(msg: discord.message.Message):
     # Bot shouldn't be responding to itself
-    if message.author == client.user:
+    if msg.author == client.user:
         return
-    if message.content == "Hello":
-        await client.send_message(message.channel, "World")
+    if msg.content.lower() == "hello":
+        await msg.channel.send(content="World")
+    if "sleep" in msg.content.lower():
+        await client.change_presence(
+            status=discord.Status.do_not_disturb,
+            activity=discord.Game(name="Sleeping...😴")
+        )
 
 client.run(TOKEN)
