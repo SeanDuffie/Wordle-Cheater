@@ -4,11 +4,11 @@
 
 
 """
-# import necessary modules
+import time
+
+import pyautogui as pg
 import selenium.webdriver
 from selenium.webdriver.common.by import By
-import time
-import pyautogui as pg
 
 # create a new instance of the Firefox driver
 driver = selenium.webdriver.Chrome()
@@ -24,14 +24,15 @@ driver.find_element(by=By.CLASS_NAME, value="Modal-module_closeIcon__TcEKb").cli
 
 time.sleep(.5)
 
-# inputElement = driver.find_element_by_id("a1")
-# inputElement.send_keys('1')
+word = "flash"
+while word != "":
+    letter = word[0]
+    word = word[1:]
 
-pg.press("a")
-pg.press("s")
-pg.press("p")
-pg.press("e")
-pg.press("n")
+    pg.press(letter)
+
+    # inputElement = driver.find_element_by_id("a1")
+    # inputElement.send_keys(letter)
 
 pg.press("\n")
 
