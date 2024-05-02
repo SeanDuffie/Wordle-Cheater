@@ -6,8 +6,8 @@
 """
 import time
 
-import pyautogui as pg
 import selenium.webdriver
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 
 # create a new instance of the Firefox driver
@@ -23,18 +23,11 @@ time.sleep(.1)
 driver.find_element(by=By.CLASS_NAME, value="Modal-module_closeIcon__TcEKb").click()
 
 time.sleep(.5)
+actions = ActionChains(driver=driver)
 
-word = "flash"
-while word != "":
-    letter = word[0]
-    word = word[1:]
-
-    pg.press(letter)
-
-    # inputElement = driver.find_element_by_id("a1")
-    # inputElement.send_keys(letter)
-
-pg.press("\n")
+word = "flash\n"
+actions.send_keys(word)
+actions.perform()
 
 while True:
     pass
