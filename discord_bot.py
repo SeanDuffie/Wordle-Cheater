@@ -1,3 +1,16 @@
+""" @file discord_bot.py
+    @author Sean Duffie
+    @brief Discord bot interface
+
+    Features
+    - Automatically posts bot score from each wordle day
+    - Allows people to request a new word
+        - Users can guess and have results delivered back
+        - User's guess is hidden, but results are visible
+        - User results are specific to each person
+        - Winner per day is recorded
+        - Person with the most wins is given a new role
+"""
 import discord
 
 client = discord.Client()
@@ -16,14 +29,3 @@ async def on_message(message):
         await client.send_message(message.channel, "World")
 
 client.run(TOKEN)
-
-
-""" Features
-    - Automatically posts bot score from each wordle day
-    - Allows people to request a new word
-        - Users can guess and have results delivered back
-        - User's guess is hidden, but results are visible
-        - User results are specific to each person
-        - Winner per day is recorded
-        - Person with the most wins is given a new role
-"""
