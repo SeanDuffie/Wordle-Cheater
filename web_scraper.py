@@ -19,13 +19,13 @@ def scrape_website(url: str) -> requests.models.Response:
         requests.models.Response: _description_
     """
     # Perform the request
-    response = requests.get(url)
+    response = requests.get(url=url, timeout=10)
 
     # Check if the HTTP request was successful
     if response.status_code == 200:
         return response
     else:
-        print('Failed to retrieve BBC News.')
+        print('Failed to retrieve HTML.')
         return None
 
 def parse_html(html: requests.models.Response) -> pd.Series:
