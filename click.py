@@ -11,23 +11,24 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 
 # create a new instance of the Firefox driver
-driver = selenium.webdriver.Chrome()
+with selenium.webdriver.Chrome() as driver:
 
-# navigate to the login page
-driver.get("https://www.nytimes.com/games/wordle/index.html")
+    # navigate to the login page
+    driver.get("https://www.nytimes.com/games/wordle/index.html")
 
-# locate the "Sign In" button by its text and click on it
-# driver.find_element(by=By.CLASS_NAME, value="Welcome-module_button__ZG0Zh").click()
-driver.find_element(by=By.XPATH, value="//button[contains(text(),'Play')]").click()
-time.sleep(.1)
-driver.find_element(by=By.CLASS_NAME, value="Modal-module_closeIcon__TcEKb").click()
+    # locate the "Sign In" button by its text and click on it
+    # driver.find_element(by=By.CLASS_NAME, value="Welcome-module_button__ZG0Zh").click()
+    driver.find_element(by=By.XPATH, value="//button[contains(text(),'Play')]").click()
+    time.sleep(.1)
+    driver.find_element(by=By.CLASS_NAME, value="Modal-module_closeIcon__TcEKb").click()
 
-time.sleep(.5)
-actions = ActionChains(driver=driver)
+    time.sleep(.5)
 
-word = "flash\n"
-actions.send_keys(word)
-actions.perform()
+    word = "flash\n"
 
-while True:
-    pass
+    actions = ActionChains(driver=driver)
+    actions.send_keys(word)
+    actions.perform()
+
+    while True:
+        pass
