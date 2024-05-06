@@ -115,6 +115,20 @@ class RealPlayer():
 
         return result
 
+    def run_generator(self):
+        """ Main runner for RealPlayer """
+        wb = WordBank()
+        guess = "flash"
+
+        while True:
+            result = self.play_word(guess)
+            yield (guess, result)
+
+            if result == "22222" or result.isalpha():
+                return
+
+            guess = wb.submit_guess(word=guess, res=result, method="slo")
+
 def run():
     """ Main runner for RealPlayer """
     url = "https://www.nytimes.com/games/wordle/index.html"
@@ -132,10 +146,14 @@ def run():
                 break
 
             guess = wb.submit_guess(word=guess, res=result, method="slo")
-        time.sleep(3)
 
-    print("Done")
     return history
 
 if __name__ == "__main__":
+    url = "https://www.nytimes.com/games/wordle/index.html"
+    with RealPlayer(url) as rp:
+        for item in rp.run_generator():
+            print(item)
+
+    print("\n\nTAKE TWO:")
     run()
