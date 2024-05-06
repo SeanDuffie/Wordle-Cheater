@@ -131,7 +131,7 @@ def run():
             if result == "22222" or result.isalpha():
                 break
 
-            guess = wb.submit_guess(word=guess, res=result, method="slo")0
+            guess = wb.submit_guess(word=guess, res=result, method="slo")
         time.sleep(3)
 
     print("Done")
