@@ -227,12 +227,18 @@ class WordBank:
             flag = True
 
         if flag:
+            # Search the original bank for words that may eliminate the missing letters
             self.original_bank["Sim"] = self.original_bank["Words"].apply(func=find_bridge, args=(oddballs,))
-            indexSim = self.original_bank[(self.original_bank['Sim'] <= 0.4)].index
-            self.original_bank.drop(indexSim, inplace=True)
+
+            # Drop values that don't score high enough
+            index_sim = self.original_bank[(self.original_bank['Sim'] <= 0.4)].index
+            self.original_bank.drop(index_sim, inplace=True)
+
+            # Sort the filtered results and reset the index
             self.original_bank.sort_values(by=["Sim"], ascending=False, inplace=True, ignore_index=True)
-            print("Detected Potential Similarities!!!")
-            print(self.original_bank)
+            self.original_bank = self.original_bank.reset_index(drop=True)
+
+            # Return the most likely suggested word
             return self.original_bank["Words"][0]
 
         # Print results to user if they are actively participating
