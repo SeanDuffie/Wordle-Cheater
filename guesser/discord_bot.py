@@ -23,15 +23,19 @@ import datetime
 import discord
 import discord.ext
 import discord.ext.commands
-# from apscheduler.schedulers.asyncio import AsyncIOScheduler
+import discord.ext.tasks
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from real_player import RealPlayer
 
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 
-bot = discord.ext.commands.Bot(command_prefix="!", intents=intents,)
-now = datetime.datetime.now()
+bot = discord.ext.commands.Bot(
+    command_prefix="!",
+    intents=intents,
+    help_command=discord.ext.commands.HelpCommand()
+    )
 
 
 @bot.event
@@ -43,36 +47,22 @@ async def on_ready():
     )
 
 @bot.command()
-async def send(ctx, message):
-    """_summary_
+async def send(ctx: discord.TextChannel, message: str):
+    """ Sends a simple String message to the chat.
 
     Args:
-        channel (_type_): _description_
-        message (_type_): _description_
+        channel (discord.TextChannel): The channel that this was called from.
+        message (str): The message to send to that channel.
     """
     await ctx.send(message)
 
 @bot.command()
-async def hello(ctx):
-    """_summary_
+async def wordle(ctx: discord.TextChannel):
+    """ Play todays Wordle
 
     Args:
-        channel (_type_): _description_
-        message (_type_): _description_
+        ctx (discord.TextChannel): The channel that this was called from
     """
-    await ctx.send("Hello World")
-
-@bot.group()
-async def cool(ctx):
-    """Says if a user is cool.
-
-    In reality this just checks if a subcommand is being invoked.
-    """
-    if ctx.invoked_subcommand is None:
-        await ctx.send(f'No, {ctx.subcommand_passed} is not cool')
-
-@bot.command()
-async def wordle(ctx):
     url = "https://www.nytimes.com/games/wordle/index.html"
     first = datetime.date(2021, 6, 19)
     number = (datetime.date.today() - first).days
@@ -92,22 +82,19 @@ async def wordle(ctx):
     await ctx.send(response)
 
 
-@cool.command(name='bot')
-async def _bot(ctx):
-    """Is the bot cool?"""
-    await ctx.send('Yes, the bot is cool.')
 
 @bot.command(name="schedule")
-# @discord.ext.commands.has_any_role("MODS", "ADMIN")
 async def schedule(ctx, time_str, date_str=None, channel_id=None):
-    """
-    Schedule a message in current chat at a specific time
-    @:param time_str: The time to send the message, HH:MM format, must still be today
-    @:param message: Must be in quotation marks, the message you want to send
+    """ Schedule a message in current chat at a specific time
+
+    Args:
+        time_str (str): The time to send the message, HH:MM format, must still be today
+        date_str (str): Date to send the first message. Must be in the future
+        channel_id (str | OPTIONAL): The channel ID to send the message to. Default is the current channel.
     Usage:
-    -schedule <time> "<message>"
+        schedule <time>
     Example:
-    -schedule 16:00 "Hello there :)"
+        schedule 16:00
     """
 
     # Get the date
@@ -130,13 +117,13 @@ async def schedule(ctx, time_str, date_str=None, channel_id=None):
         channel = ctx.channel
     assert channel is not None
 
-    # Schedule the message
-    scheduler = AsyncIOScheduler()
-    scheduler.add_job(send, 'date', run_date=run_time, args=[channel, message])
-    scheduler.start()
+    # # Schedule the message
+    # scheduler = AsyncIOScheduler()
+    # scheduler.add_job(wordle, 'date', run_date=run_time, args=[channel])
+    # scheduler.start()
 
-    # Confirm
-    print(f"Scheduled a message at {run_time} in channel {channel}: {message}")
-    await ctx.channel.send(f"All set, message wil be sent in {delay / 60:.2f} minutes (unless this bot crashes in meantime)!")
+    # # Confirm
+    # print(f"Will post the Wordle results at {run_time} in channel {channel}")
+    await ctx.channel.send(f"All set, Wordle results will be posted in {delay/60}{delay%60} minutes (unless this bot crashes in meantime)!")
 
 bot.run(TOKEN)

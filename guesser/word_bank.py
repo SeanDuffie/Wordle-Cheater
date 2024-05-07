@@ -17,6 +17,8 @@ import pandas as pd
 RTDIR = os.path.dirname(__file__)
 
 import difflib
+
+
 def exact_comp(first_word, second_word):
     """_summary_
 
