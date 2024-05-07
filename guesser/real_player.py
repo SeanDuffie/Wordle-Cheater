@@ -11,6 +11,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 from word_bank import WordBank
+from typing import Generator
 
 
 class RealPlayer():
@@ -117,7 +118,7 @@ class RealPlayer():
 
         return result
 
-    def run_generator(self):
+    def run_generator(self) -> Generator[tuple[str, str], None, None]:
         """ Main runner for RealPlayer """
         wb = WordBank()
         guess = "flash"
