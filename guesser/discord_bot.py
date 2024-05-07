@@ -23,13 +23,15 @@ import datetime
 import discord
 import discord.ext
 import discord.ext.commands
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+# from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from real_player import RealPlayer
 
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 
 bot = discord.ext.commands.Bot(command_prefix="!", intents=intents,)
+now = datetime.datetime.now()
 
 
 @bot.event
@@ -68,6 +70,26 @@ async def cool(ctx):
     """
     if ctx.invoked_subcommand is None:
         await ctx.send(f'No, {ctx.subcommand_passed} is not cool')
+
+@bot.command()
+async def wordle(ctx):
+    url = "https://www.nytimes.com/games/wordle/index.html"
+    first = datetime.date(2021, 6, 19)
+    number = (datetime.date.today() - first).days
+    response = f"Wordle {number:,} #\n\n"
+    guess_count = 0
+
+    with RealPlayer(url) as rp:
+        for item in rp.run_generator():
+            line = item[1].replace("2", ":green_square:").replace("1", ":yellow_square:").replace("0", ":black_large_square:")
+            response += line + "\n"
+            guess_count += 1
+
+        if guess_count > 6:
+            guess_count = "x"
+        response = response.replace("#", f"{guess_count}/6")
+
+    await ctx.send(response)
 
 
 @cool.command(name='bot')
