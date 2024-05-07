@@ -9,6 +9,7 @@ import time
 import selenium.webdriver
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
 from word_bank import WordBank
 
 
@@ -24,7 +25,8 @@ class RealPlayer():
     """
     def __init__(self, url: str):
         # Launch the Chrome browser
-        self.driver = selenium.webdriver.Chrome()
+        # NOTE: This was working on one computer but not another. Adding the ChromeDriverManager seemed to fix it, but I'm still cautious.
+        self.driver = selenium.webdriver.Chrome(executable_path=ChromeDriverManager().install())
         # navigate to the login page
         self.driver.get(url=url)
         # Set up an Action Handler for sending keypresses
