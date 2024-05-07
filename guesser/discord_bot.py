@@ -18,35 +18,29 @@
         - schedule - sets the time every day that the wordle should be solved
         - stats [player] - 
 """
+import asyncio
 import datetime
 
 import discord
 import discord.ext
 import discord.ext.commands
 import discord.ext.tasks
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from real_player import RealPlayer
 
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 
-bot = discord.ext.commands.Bot(
+local_tz = datetime.datetime.now().astimezone().tzinfo
+schedule_time = datetime.time(12, tzinfo=local_tz)
+
+wordle_bot = discord.ext.commands.Bot(
     command_prefix="!",
     intents=intents,
     help_command=discord.ext.commands.HelpCommand()
     )
 
-
-@bot.event
-async def on_ready():
-    """_summary_
-    """
-    await bot.change_presence(
-        activity=discord.Game(name="Today's Wordle")
-    )
-
-@bot.command()
+@wordle_bot.command()
 async def send(ctx: discord.TextChannel, message: str):
     """ Sends a simple String message to the chat.
 
@@ -56,7 +50,7 @@ async def send(ctx: discord.TextChannel, message: str):
     """
     await ctx.send(message)
 
-@bot.command()
+@wordle_bot.command()
 async def wordle(ctx: discord.TextChannel):
     """ Play todays Wordle
 
@@ -81,49 +75,78 @@ async def wordle(ctx: discord.TextChannel):
 
     await ctx.send(response)
 
+@discord.ext.tasks.loop(time=schedule_time)
+async def wordle_schedule():
+    """ Play todays Wordle
+
+    Args:
+        ctx (discord.TextChannel): The channel that this was called from
+    """
+    url = "https://www.nytimes.com/games/wordle/index.html"
+    first = datetime.date(2021, 6, 19)
+    number = (datetime.date.today() - first).days
+    response = f"Wordle {number:,} #\n\n"
+    guess_count = 0
+
+    with RealPlayer(url) as rp:
+        for item in rp.run_generator():
+            line = item[1].replace("2", ":green_square:").replace("1", ":yellow_square:").replace("0", ":black_large_square:")
+            response += line + "\n"
+            guess_count += 1
+
+        if guess_count > 6:
+            guess_count = "x"
+        response = response.replace("#", f"{guess_count}/6")
+
+    # TODO: Make this more sophisticated, it should be flexible and not hardcoded
+    global CTX
+    CTX = wordle_bot.get_channel(1237240699624226846)
+    await CTX.send(response)
 
 
-@bot.command(name="schedule")
-async def schedule(ctx, time_str, date_str=None, channel_id=None):
+@wordle_bot.command(name="schedule")
+async def schedule(ctx, time_str=None, channel_id=None):
     """ Schedule a message in current chat at a specific time
 
     Args:
         time_str (str): The time to send the message, HH:MM format, must still be today
-        date_str (str): Date to send the first message. Must be in the future
         channel_id (str | OPTIONAL): The channel ID to send the message to. Default is the current channel.
     Usage:
-        schedule <time>
+        schedule <time> <channel_id>
     Example:
-        schedule 16:00
+        schedule 13:00 0123456789123456789
     """
+    # Update the scheduled runtime.
+    global schedule_time
+    local_tz = datetime.datetime.now().astimezone().tzinfo
+    hr, mn = time_str.split(":")
+    schedule_time = datetime.time(int(hr), int(mn), tzinfo=local_tz)
 
-    # Get the date
-    if date_str is None:
-        date = datetime.datetime.now()
-    else:
-        date = datetime.datetime.strptime(date_str, "%d/%m/%Y")
-
-    run_time = datetime.datetime.strptime(time_str, '%H:%M').replace(year=date.year, month=date.month, day=date.day)
-
-    # Check if it's in the future
-    now = datetime.datetime.now()
-    delay = (run_time - now).total_seconds()
-    assert delay > 0
-
-    # Get the channel
+    # Update the channel to receive the notification.
     if channel_id is not None:
-        channel = bot.get_channel(int(channel_id))
-    else:
-        channel = ctx.channel
-    assert channel is not None
+        global CTX
+        CTX = wordle_bot.get_channel(int(channel_id))
 
-    # # Schedule the message
-    # scheduler = AsyncIOScheduler()
-    # scheduler.add_job(wordle, 'date', run_date=run_time, args=[channel])
-    # scheduler.start()
 
-    # # Confirm
-    # print(f"Will post the Wordle results at {run_time} in channel {channel}")
-    await ctx.channel.send(f"All set, Wordle results will be posted in {delay/60}{delay%60} minutes (unless this bot crashes in meantime)!")
+    # Relaunch the task with the update time and channel
+    # FIXME: This is very finnicky, please help
+    if wordle_schedule.is_running():
+        wordle_schedule.cancel()
+    while wordle_schedule.is_running():
+        print("Cancelling old schedule...")
+        await asyncio.sleep(1)
+    wordle_schedule.start()
+    print("Started new schedule!")
 
-bot.run(TOKEN)
+@wordle_bot.event
+async def on_ready():
+    """ Runs when the DiscordBot has been initialized and is ready """
+    # Start the wordle schedule automatically
+    if not wordle_schedule.is_running():
+        wordle_schedule.start()
+    # Set the Bot Rich Presence
+    await wordle_bot.change_presence(
+        activity=discord.Game(name="Today's Wordle")
+    )
+
+wordle_bot.run(TOKEN)
