@@ -27,7 +27,11 @@ class RealPlayer():
     def __init__(self, url: str):
         # Launch the Chrome browser
         # NOTE: This was working on one computer but not another. Adding the ChromeDriverManager seemed to fix it, but I'm still cautious.
-        self.driver = selenium.webdriver.Chrome(executable_path=ChromeDriverManager().install())
+        # FIXME: This line behaves differently on different versions of python
+        # Python 3.12
+        self.driver = selenium.webdriver.Chrome()
+        # Python 3.10
+        # self.driver = selenium.webdriver.Chrome(executable_path=ChromeDriverManager().install())
         # navigate to the login page
         self.driver.get(url=url)
         # Set up an Action Handler for sending keypresses
