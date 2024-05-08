@@ -80,24 +80,24 @@ class WordBank:
         Returns:
             pd.Dataframe: Single column Dataframe that has all possible 5 letter words
         """
-        def valid_word(word: str):
-            """ Helper function intended to be "apply()"'d on a pandas dataframe column
+        # def valid_word(word: str):
+        #     """ Helper function intended to be "apply()"'d on a pandas dataframe column
 
-            Checks to make sure that a string contains only letters and is 5 long
+        #     Checks to make sure that a string contains only letters and is 5 long
 
-            Args:
-                word (str): input string
+        #     Args:
+        #         word (str): input string
 
-            Returns:
-                bool: True if the word is 5 letters and contains no numbers or special characters
-            """
-            if len(str(word)) == 5:
-                return word.isalpha()
-            return False
+        #     Returns:
+        #         bool: True if the word is 5 letters and contains no numbers or special characters
+        #     """
+        #     if len(str(word)) == 5:
+        #         return word.isalpha()
+        #     return False
 
-        file = pd.read_csv(filepath_or_buffer=f'{RTDIR}\\..\\words.csv', names=["Words"])
-        mask = file["Words"].apply(valid_word)
-        return file[mask].reset_index(drop=True)
+        file = pd.read_csv(filepath_or_buffer=f'{RTDIR}\\..\\word_options.csv', names=["Words"])
+        # mask = file["Words"].apply(valid_word)
+        return file#[mask].reset_index(drop=True)
 
     def submit_guess(self, word: str, res: str, method: Literal['cum', 'uni', 'slo', 'tot']) -> str:
         """ Update the database off of recent guess, then select the next most likely
