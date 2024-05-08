@@ -95,7 +95,7 @@ class WordBank:
         #         return word.isalpha()
         #     return False
 
-        file = pd.read_csv(filepath_or_buffer=f'{RTDIR}\\..\\word_options.csv', names=["Words"])
+        file = pd.read_csv(filepath_or_buffer=f'{RTDIR}\\..\\valid_guesses.csv', names=["Words"])
         # mask = file["Words"].apply(valid_word)
         return file#[mask].reset_index(drop=True)
 
