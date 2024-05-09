@@ -148,7 +148,7 @@ async def schedule(ctx: discord.ext.commands.context.Context,
     print("Started new schedule!")
     await ctx.send(f"Starting new schedule at {SCH_TM}")
 
-    cur = datetime.datetime.now()
+    cur = datetime.datetime.now(tz=local_tz)
     nxt = datetime.datetime.combine(datetime.date.today(), SCH_TM)
     if nxt < cur:
         nxt = nxt + datetime.timedelta(days=1)
