@@ -20,11 +20,13 @@
 """
 import asyncio
 import datetime
+import os
 
 import discord
 import discord.ext
 import discord.ext.commands
 import discord.ext.tasks
+from dotenv import load_dotenv
 from real_player import RealPlayer
 
 # Set Discord intents (these are permissions that determine what the bot is allowed to observe)
@@ -36,6 +38,13 @@ intents.message_content = True
 local_tz = datetime.datetime.now().astimezone().tzinfo
 SCH_TM = datetime.time(8, tzinfo=local_tz)
 #############################################
+
+############ GET ENVIRONMENT VARIABLES ############
+RTDIR = os.path.dirname(__file__)
+
+load_dotenv(dotenv_path=f"{RTDIR}/.env")
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+###################################################
 
 # Default Channel to execute Wordle commands in
 CTX = None
@@ -166,4 +175,4 @@ async def on_ready():
         activity=discord.Game(name="Today's Wordle")
     )
 
-wordle_bot.run(TOKEN)
+wordle_bot.run(DISCORD_TOKEN)

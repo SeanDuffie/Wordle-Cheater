@@ -4,15 +4,15 @@
 
 
 """
-import time
 import sys
+import time
+from typing import Generator
 
 import selenium.webdriver
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 from word_bank import WordBank
-from typing import Generator
 
 
 class RealPlayer():
