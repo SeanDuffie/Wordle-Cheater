@@ -84,7 +84,13 @@ class RealPlayer():
 
             # Give enough time for the animation to finish, then read the results
             time.sleep(2)
-            result = self.read_results(self.counter)
+            try:
+                result = self.read_results(self.counter)
+            except ValueError:
+                print("Invalid guess, clearing entry...")
+                self.actions.send_keys("\b\b\b\b\b")
+                self.actions.perform()
+                return None
 
             # Increment guess counter
             self.counter += 1
@@ -129,22 +135,28 @@ class RealPlayer():
 
         while True:
             try:
+                # Submit guess, then yield results
                 result = self.play_word(guess)
 
-                if result == "22222":
-                    return (guess, result)
+                # Check that the guess was accepted. TODO: If not, suggest a new one and continue.
+                if result is None:
+                    guess = "flash"
+                    continue
 
+                # Yield Generator output
                 yield (guess, result)
 
+                # Check victory conditions, or if out of guesses, get the final result
+                if result == "22222" or result.isalpha():
+                    return
+
+                # Get suggestion from the wordbank for the next guess
                 guess = wb.submit_guess(word=guess, res=result, method="slo")
-            except AssertionError as e:
+            except AssertionError:
                 if guess.lower() == "failed":
-                    print("Error! Ran out of options! (This shouldn't be possible)")
-                    return (guess, result)
-                # logger.error(e)
-                print(e)
-                print("Invalid Guess!")
-                print(guess)
+                    print("Error! Word Bank ran out of options! (This shouldn't be possible)")
+                    return
+                print(f"Invalid Guess: {guess}")
 
 def run():
     """ Main runner for RealPlayer """
@@ -155,23 +167,29 @@ def run():
 
     with RealPlayer(url=url) as player:
         while True:
-            result = player.play_word(guess)
-            history.append((guess, result))
-            print(history)
-
-            if result == "22222":
-                break
-
             try:
-                guess = wb.submit_guess(word=guess, res=result, method="slo")
-            except AssertionError as e:
-                if guess.lower() == "failed":
-                    print("Error! Ran out of options! (This shouldn't be possible)")
+                # Submit guess, then save results
+                result = player.play_word(guess)
+
+                # Check that the guess was accepted. TODO: If not, suggest a new one and continue.
+                if result is None:
+                    guess = "flash"
+                    continue
+
+                # Save the output
+                history.append((guess, result))
+
+                # Check for victory conditions, or if out of guesses, get the final result
+                if result == "22222" or result.isalpha():
                     break
-                # logger.error(e)
-                print(e)
-                print("Invalid Guess!")
-                print(guess)
+
+                # Get suggestion from the wordbank for the next guess
+                guess = wb.submit_guess(word=guess, res=result, method="slo")
+            except AssertionError:
+                if guess.lower() == "failed":
+                    print("Error! Word Bank ran out of options! (This shouldn't be possible)")
+                    break
+                print(f"Invalid Guess: {guess}")
 
     return history
 
