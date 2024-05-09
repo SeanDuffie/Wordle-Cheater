@@ -128,13 +128,23 @@ class RealPlayer():
         guess = "flash"
 
         while True:
-            result = self.play_word(guess)
-            yield (guess, result)
+            try:
+                result = self.play_word(guess)
 
-            if result == "22222" or result.isalpha():
-                return
+                if result == "22222":
+                    return (guess, result)
 
-            guess = wb.submit_guess(word=guess, res=result, method="slo")
+                yield (guess, result)
+
+                guess = wb.submit_guess(word=guess, res=result, method="slo")
+            except AssertionError as e:
+                if guess.lower() == "failed":
+                    print("Error! Ran out of options! (This shouldn't be possible)")
+                    return (guess, result)
+                # logger.error(e)
+                print(e)
+                print("Invalid Guess!")
+                print(guess)
 
 def run():
     """ Main runner for RealPlayer """
@@ -149,10 +159,19 @@ def run():
             history.append((guess, result))
             print(history)
 
-            if result == "22222" or result.isalpha():
+            if result == "22222":
                 break
 
-            guess = wb.submit_guess(word=guess, res=result, method="slo")
+            try:
+                guess = wb.submit_guess(word=guess, res=result, method="slo")
+            except AssertionError as e:
+                if guess.lower() == "failed":
+                    print("Error! Ran out of options! (This shouldn't be possible)")
+                    break
+                # logger.error(e)
+                print(e)
+                print("Invalid Guess!")
+                print(guess)
 
     return history
 
