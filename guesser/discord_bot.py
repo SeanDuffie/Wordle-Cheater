@@ -147,7 +147,13 @@ async def schedule(ctx: discord.ext.commands.context.Context,
     wordle_schedule.start()
     print("Started new schedule!")
     await ctx.send(f"Starting new schedule at {SCH_TM}")
-    await ctx.send(f"Next message in {SCH_TM - datetime.datetime.now().time()}")
+
+    cur = datetime.datetime.now()
+    nxt = datetime.datetime.combine(datetime.date.today(), SCH_TM)
+    if nxt < cur:
+        nxt = nxt + datetime.timedelta(days=1)
+
+    await ctx.send(f"Next message in {nxt - cur}")
 
 @wordle_bot.event
 async def on_ready():
