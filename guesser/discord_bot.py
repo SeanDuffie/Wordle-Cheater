@@ -35,8 +35,8 @@ intents.members = True
 intents.message_content = True
 
 ############### SET TIME HERE ###############
-local_tz = datetime.datetime.now().astimezone().tzinfo
-SCH_TM = datetime.time(8, tzinfo=local_tz)
+LOCAL_TZ = datetime.datetime.now().astimezone().tzinfo
+SCH_TM = datetime.time(8, tzinfo=LOCAL_TZ)
 #############################################
 
 ############ GET ENVIRONMENT VARIABLES ############
@@ -95,11 +95,7 @@ async def wordle(ctx: discord.ext.commands.context.Context):
 
 @discord.ext.tasks.loop(time=SCH_TM)
 async def wordle_schedule():
-    """ Play todays Wordle
-
-    Args:
-        ctx (discord.TextChannel): The channel that this was called from
-    """
+    """ Play todays Wordle every day at 8am """
     url = "https://www.nytimes.com/games/wordle/index.html"
     first = datetime.date(2021, 6, 19)
     number = (datetime.date.today() - first).days
@@ -116,8 +112,9 @@ async def wordle_schedule():
             guess_count = "x"
         response = response.replace("#", f"{guess_count}/6")
 
-    # TODO: Make this more sophisticated, it should be flexible and not hardcoded
-    await CTX.send(response)
+    for channel in wordle_bot.get_all_channels():
+        if channel.name.lower() in ["wordle", "worldle", "nyt"]:
+            await channel.send(response)
 
 
 @wordle_bot.command(name="schedule")
@@ -133,18 +130,6 @@ async def schedule(ctx: discord.ext.commands.context.Context,
     Example:
         schedule 13:00 0123456789123456789
     """
-    # Parse the time string input
-    hr, mn = time_str.split(":")
-
-    # Update the scheduled runtime.
-    global SCH_TM
-    SCH_TM = datetime.time(int(hr), int(mn), tzinfo=local_tz)
-
-    # Update the channel to receive the notification.
-    global CTX
-    CTX = ctx
-
-
     # Relaunch the task with the update time and channel
     # FIXME: This is very finnicky, please help
     if wordle_schedule.is_running():
@@ -157,7 +142,7 @@ async def schedule(ctx: discord.ext.commands.context.Context,
     print("Started new schedule!")
     await ctx.send(f"Starting new schedule at {SCH_TM}")
 
-    cur = datetime.datetime.now(tz=local_tz)
+    cur = datetime.datetime.now(tz=LOCAL_TZ)
     nxt = datetime.datetime.combine(datetime.date.today(), SCH_TM)
     if nxt < cur:
         nxt = nxt + datetime.timedelta(days=1)
