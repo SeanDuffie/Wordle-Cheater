@@ -196,8 +196,7 @@ def run():
 if __name__ == "__main__":
     url = "https://www.nytimes.com/games/wordle/index.html"
     with RealPlayer(url) as rp:
-        for item in rp.run_generator():
-            print(item)
+        print(list(rp.run_generator()))
 
     print("\n\nTAKE TWO:")
-    run()
+    print(run())
