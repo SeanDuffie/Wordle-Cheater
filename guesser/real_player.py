@@ -5,6 +5,7 @@
 
 """
 import time
+import sys
 
 import selenium.webdriver
 from selenium.webdriver.common.action_chains import ActionChains
@@ -28,11 +29,15 @@ class RealPlayer():
         # Launch the Chrome browser
         # NOTE: This was working on one computer but not another. Adding the ChromeDriverManager seemed to fix it, but I'm still cautious.
         # FIXME: This line behaves differently on different versions of python
-        # Python 3.12
-        self.driver = selenium.webdriver.Chrome()
-        # Python 3.10
-        # self.driver = selenium.webdriver.Chrome(executable_path=ChromeDriverManager().install())
-        # navigate to the login page
+        match sys.version_info[1]:
+            case 12:
+                self.driver = selenium.webdriver.Chrome()
+            case 10:
+                self.driver = selenium.webdriver.Chrome(executable_path=ChromeDriverManager().install())
+            case _:
+                self.driver = selenium.webdriver.Chrome()
+
+        # navigate to the desired website
         self.driver.get(url=url)
         # Set up an Action Handler for sending keypresses
         self.actions = ActionChains(driver=self.driver)
