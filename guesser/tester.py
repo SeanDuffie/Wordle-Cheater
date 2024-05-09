@@ -83,8 +83,9 @@ class Tester:
         mask = file["Words"].apply(valid_word)
         return file[mask].reset_index(drop=True)
 
-    def play(self, start: str = "crane", solution: str = None, rand_sol: bool = False,
-             manual: bool = False, method: Literal['cum', 'uni', 'slo', 'tot'] = 'tot'):
+    # TODO: FIXME: Eventually change the typehinting for method to a more sophisticated dict or other typehint method
+    def play(self, start: str = "crane", solution: str = None, method: Literal['cum', 'uni', 'slo', 'tot'] = 'tot',
+             manual: bool = False):
         """ Controls the actual play process of the game
 
         Args:
@@ -95,58 +96,16 @@ class Tester:
         # Initialize wordbank and guess count, debug controls suppression of prints
         wb = WordBank(debug=manual)
         guess_count = 1
-        guesses = [start]
+        guesses = []
+        guess = start
 
         # If the solution is not defined, generate a random one
-        if rand_sol:
+        if solution == "rand":
+            print(len(wb.word_bank["Words"]))
             solution = wb.word_bank["Words"][random.randint(0,2309)]
 
-        # If the solution is unknown, prompt user for results, otherwise generate them
-        if solution is None:
-            while True:
-                try:
-                    result = input(f"What were the results for '{start}'? (2=green, 1=yellow, 0=grey) (ex. '02001'): ")
-                    if not len(result) == 5:
-                        raise ValueError("Invalid Result size, must be 5 digits. Try Again.")
-                    if not result.isnumeric():
-                        raise ValueError("Result must be numerical (no special or letters). Try Again.")
-                    if any(inv_num in result for inv_num in ['3', '4', '5', '6', '7', '8', '9']):
-                        raise ValueError("Result can only contain [0, 1, 2]. Try Again.")
-                    break
-                except ValueError as e:
-                    print(e)
-                    # logger.error(e)
-        else:
-            result = check(start, solution)
-
-        # If playing manually, get next guess from user, otherwise generate next guess
-        guess = wb.submit_guess(start, result, method)
-        if manual:
-            while True:
-                try:
-                    guess = input(f"Enter guess #{guess_count+1}: ")
-                    if not len(guess) == 5:
-                        raise ValueError("Word must be 5 letters long. Try Again.")
-                    if not guess.isalpha():
-                        raise ValueError("Guess must be alphabetical (no special or numbers). Try Again.")
-                    if not self.word_options["Words"].str.contains(guess).any():
-                        print(self.word_options["Words"])
-                        raise ValueError("Word guess must be in the Wordle database. Try Again.")
-                    break
-                except ValueError as e:
-                    print(e)
-                    # logger.error(e)
-
-        # Loop until the solution is found
-        while result != "22222":
-            # Check to make sure that the dataframe didn't run out of choices
-            if guess == "Failed":
-                print("Error! Ran out of options! (This shouldn't be possible)")
-                break
-            guess_count += 1
-
+        while True:
             # If the solution is unknown, prompt user for results, otherwise generate them
-            guesses.append(guess)
             if solution is None:
                 while True:
                     try:
@@ -163,12 +122,14 @@ class Tester:
                         # logger.error(e)
             else:
                 result = check(guess, solution)
-            if manual:
-                print(wb.word_bank)
                 print(f"[{solution=}]: Guessing '{guess}' with results '{result}' on attempt {guess_count}")
 
-            # Check if the user won
+            # Log result history
+            guesses.append((guess, result))
+
+            # Check for victory conditions
             if result == "22222":
+                print("Victory!")
                 break
 
             # If playing manually, get next guess from user, otherwise generate next guess
@@ -187,7 +148,16 @@ class Tester:
                         break
                     except ValueError as e:
                         print(e)
+                        # logger.error(e)
 
+            guess_count += 1
+
+            # Check to make sure that the dataframe didn't run out of choices
+            if guess.lower() == "failed":
+                print("Error! Ran out of options! (This shouldn't be possible)")
+                break
+
+        # FIXME: Is guess_count necessary now that the guesses are logged as a list?
         return guess_count, guesses
 
     def permutations(self, method: Literal['cum', 'uni', 'slo', 'tot'] = 'tot'):
