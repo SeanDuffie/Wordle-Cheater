@@ -27,21 +27,30 @@ import discord.ext.commands
 import discord.ext.tasks
 from real_player import RealPlayer
 
+# Set Discord intents (these are permissions that determine what the bot is allowed to observe)
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 
+############### SET TIME HERE ###############
 local_tz = datetime.datetime.now().astimezone().tzinfo
-schedule_time = datetime.time(12, tzinfo=local_tz)
+SCH_TM = datetime.time(8, tzinfo=local_tz)
+#############################################
 
+# Default Channel to execute Wordle commands in
+CTX = None
+
+
+# NOTE: I use commands.Bot because it extends features of the Client to allow things like commands
+# Initialize Discord Bot
 wordle_bot = discord.ext.commands.Bot(
     command_prefix="!",
     intents=intents,
     help_command=discord.ext.commands.HelpCommand()
-    )
+)
 
 @wordle_bot.command()
-async def send(ctx: discord.TextChannel, message: str):
+async def send(ctx: discord.ext.commands.context.Context, message: str):
     """ Sends a simple String message to the chat.
 
     Args:
@@ -51,7 +60,7 @@ async def send(ctx: discord.TextChannel, message: str):
     await ctx.send(message)
 
 @wordle_bot.command()
-async def wordle(ctx: discord.TextChannel):
+async def wordle(ctx: discord.ext.commands.context.Context):
     """ Play todays Wordle
 
     Args:
@@ -75,7 +84,7 @@ async def wordle(ctx: discord.TextChannel):
 
     await ctx.send(response)
 
-@discord.ext.tasks.loop(time=schedule_time)
+@discord.ext.tasks.loop(time=SCH_TM)
 async def wordle_schedule():
     """ Play todays Wordle
 
@@ -99,13 +108,12 @@ async def wordle_schedule():
         response = response.replace("#", f"{guess_count}/6")
 
     # TODO: Make this more sophisticated, it should be flexible and not hardcoded
-    global CTX
-    CTX = wordle_bot.get_channel(1237240699624226846)
     await CTX.send(response)
 
 
 @wordle_bot.command(name="schedule")
-async def schedule(ctx, time_str=None, channel_id=None):
+async def schedule(ctx: discord.ext.commands.context.Context,
+                   time_str: str=None):
     """ Schedule a message in current chat at a specific time
 
     Args:
@@ -116,16 +124,16 @@ async def schedule(ctx, time_str=None, channel_id=None):
     Example:
         schedule 13:00 0123456789123456789
     """
-    # Update the scheduled runtime.
-    global schedule_time
-    local_tz = datetime.datetime.now().astimezone().tzinfo
+    # Parse the time string input
     hr, mn = time_str.split(":")
-    schedule_time = datetime.time(int(hr), int(mn), tzinfo=local_tz)
+
+    # Update the scheduled runtime.
+    global SCH_TM
+    SCH_TM = datetime.time(int(hr), int(mn), tzinfo=local_tz)
 
     # Update the channel to receive the notification.
-    if channel_id is not None:
-        global CTX
-        CTX = wordle_bot.get_channel(int(channel_id))
+    global CTX
+    CTX = ctx
 
 
     # Relaunch the task with the update time and channel
