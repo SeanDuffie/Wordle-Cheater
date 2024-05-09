@@ -143,8 +143,11 @@ async def schedule(ctx: discord.ext.commands.context.Context,
     while wordle_schedule.is_running():
         print("Cancelling old schedule...")
         await asyncio.sleep(1)
+        await ctx.send("Cancelling old schedule...")
     wordle_schedule.start()
     print("Started new schedule!")
+    await ctx.send(f"Starting new schedule at {SCH_TM}")
+    await ctx.send(f"Next message in {SCH_TM - datetime.datetime.now().time()}")
 
 @wordle_bot.event
 async def on_ready():
