@@ -100,7 +100,9 @@ async def play(ctx: discord.ext.commands.context.Context, word: str, mode: int =
     await ctx.send(f"{ctx.author.mention} Wordle # | Guess #: {line}")
 
 @wordle_bot.command()
-async def stats(ctx: discord.ext.commands.context.Context, user: discord.User):
+async def stats(ctx: discord.ext.commands.context.Context, user: discord.User=None):
+    if user is None:
+        user = ctx.author
     await ctx.send(f"Requesting stats for {user.mention}")
 
 @wordle_bot.command()
