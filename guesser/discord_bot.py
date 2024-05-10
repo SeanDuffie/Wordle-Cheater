@@ -18,7 +18,6 @@
         - schedule - sets the time every day that the wordle should be solved
         - stats [player] - 
 """
-import asyncio
 import datetime
 import os
 
@@ -26,6 +25,7 @@ import discord
 import discord.ext
 import discord.ext.commands
 import discord.ext.tasks
+import pandas as pd
 from dotenv import load_dotenv
 from real_player import RealPlayer
 
@@ -36,7 +36,8 @@ intents.message_content = True
 
 ############### SET TIME HERE ###############
 LOCAL_TZ = datetime.datetime.now().astimezone().tzinfo
-SCH_TM = datetime.time(8, tzinfo=LOCAL_TZ)
+SCH_TM = datetime.time(6, tzinfo=LOCAL_TZ)
+BONUS_SCH = [datetime.time(12, tzinfo=LOCAL_TZ), datetime.time(6, tzinfo=LOCAL_TZ)]
 #############################################
 
 ############ GET ENVIRONMENT VARIABLES ############
@@ -48,7 +49,7 @@ DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 
 # Default Channel to execute Wordle commands in
 CTX = None
-
+DF = pd.DataFrame(columns=["Time", "User", "Times Played", "Average Score", "Success Ratio", "Bot Win Ratio", "Guess 1", "Guess 2", "Guess 3", "Guess 4", "Guess 5", "Guess 6"])
 
 # NOTE: I use commands.Bot because it extends features of the Client to allow things like commands
 # Initialize Discord Bot
@@ -57,16 +58,6 @@ wordle_bot = discord.ext.commands.Bot(
     intents=intents,
     help_command=discord.ext.commands.HelpCommand()
 )
-
-@wordle_bot.command()
-async def send(ctx: discord.ext.commands.context.Context, message: str):
-    """ Sends a simple String message to the chat.
-
-    Args:
-        channel (discord.TextChannel): The channel that this was called from.
-        message (str): The message to send to that channel.
-    """
-    await ctx.send(message)
 
 @wordle_bot.command()
 async def wordle(ctx: discord.ext.commands.context.Context):
@@ -93,8 +84,36 @@ async def wordle(ctx: discord.ext.commands.context.Context):
 
     await ctx.send(response)
 
+
+@wordle_bot.command()
+async def play(ctx: discord.ext.commands.context.Context, word: str, mode: int = 0):
+    # Read user input
+
+    # Delete user message
+
+    # Send ephemeral message output
+    await ctx.send(f"You played {word}! Only you can see this...", mention_author=True, ephemeral=True)
+
+    # Send public message of results
+    results = "21012"
+    line = results.replace("2", ":green_square:").replace("1", ":yellow_square:").replace("0", ":black_large_square:")
+    await ctx.send(f"{ctx.author.mention} Wordle # | Guess #: {line}")
+
+@wordle_bot.command()
+async def stats(ctx: discord.ext.commands.context.Context, user: discord.User):
+    await ctx.send(f"Requesting stats for {user.mention}")
+
+@wordle_bot.command()
+async def leaderboards(ctx: discord.ext.commands.context.Context, scope: bool=False):
+    await ctx.send(f"Requesting leaderboard stats...")
+
+@wordle_bot.command()
+async def challenge(ctx: discord.ext.commands.context.Context, user: discord.User):
+    await ctx.send(f"{ctx.author.mention} is challenging {user.mention}!")
+
+
 @discord.ext.tasks.loop(time=SCH_TM)
-async def wordle_schedule():
+async def wordle_task():
     """ Play todays Wordle every day at 8am """
     url = "https://www.nytimes.com/games/wordle/index.html"
     first = datetime.date(2021, 6, 19)
@@ -116,45 +135,23 @@ async def wordle_schedule():
         if channel.name.lower() in ["wordle", "worldle", "nyt"]:
             await channel.send(response)
 
+# @discord.ext.tasks.loop(time=BONUS_SCH)
+# async def bonus_wordle_task():
+#     """ Play todays Wordle every day at 8am """
+#     first = datetime.date(2021, 6, 19)
+#     number = (datetime.date.today() - first).days
+#     response = f"Wordle {number:,} #\n\n"
+#     guess_count = 0
 
-@wordle_bot.command(name="schedule")
-async def schedule(ctx: discord.ext.commands.context.Context,
-                   time_str: str=None):
-    """ Schedule a message in current chat at a specific time
-
-    Args:
-        time_str (str): The time to send the message, HH:MM format, must still be today
-        channel_id (str | OPTIONAL): The channel ID to send the message to. Default is the current channel.
-    Usage:
-        schedule <time> <channel_id>
-    Example:
-        schedule 13:00 0123456789123456789
-    """
-    # Relaunch the task with the update time and channel
-    # FIXME: This is very finnicky, please help
-    if wordle_schedule.is_running():
-        wordle_schedule.cancel()
-    while wordle_schedule.is_running():
-        print("Cancelling old schedule...")
-        await asyncio.sleep(1)
-        await ctx.send("Cancelling old schedule...")
-    wordle_schedule.start()
-    print("Started new schedule!")
-    await ctx.send(f"Starting new schedule at {SCH_TM}")
-
-    cur = datetime.datetime.now(tz=LOCAL_TZ)
-    nxt = datetime.datetime.combine(datetime.date.today(), SCH_TM)
-    if nxt < cur:
-        nxt = nxt + datetime.timedelta(days=1)
-
-    await ctx.send(f"Next message in {nxt - cur}")
+#     cur = datetime.datetime.now(tz=LOCAL_TZ)
+#     noon = datetime.datetime.combine(datetime.date.today(), BONUS_SCH[0])
+#     eve = datetime.datetime.combine(datetime.date.today(), BONUS_SCH[1])
+#     if noon <= cur:
+#         nxt = nxt + datetime.timedelta(days=1)
 
 @wordle_bot.event
 async def on_ready():
     """ Runs when the DiscordBot has been initialized and is ready """
-    # Start the wordle schedule automatically
-    if not wordle_schedule.is_running():
-        wordle_schedule.start()
     # Set the Bot Rich Presence
     await wordle_bot.change_presence(
         activity=discord.Game(name="Today's Wordle")
