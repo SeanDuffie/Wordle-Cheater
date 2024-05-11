@@ -28,6 +28,8 @@ import discord.ext.tasks
 import pandas as pd
 from dotenv import load_dotenv
 from real_player import RealPlayer
+from word_bank import WordBank
+from typing import Dict
 
 # Set Discord intents (these are permissions that determine what the bot is allowed to observe)
 intents = discord.Intents.default()
@@ -50,6 +52,7 @@ DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 # Default Channel to execute Wordle commands in
 CTX = None
 DF = pd.DataFrame(columns=["Time", "User", "Times Played", "Average Score", "Success Ratio", "Bot Win Ratio", "Guess 1", "Guess 2", "Guess 3", "Guess 4", "Guess 5", "Guess 6"])
+banks: Dict[discord.User, WordBank] = {}
 
 # NOTE: I use commands.Bot because it extends features of the Client to allow things like commands
 # Initialize Discord Bot
@@ -154,6 +157,9 @@ async def wordle_task():
 @wordle_bot.event
 async def on_ready():
     """ Runs when the DiscordBot has been initialized and is ready """
+    # Start the wordle schedule automatically
+    if not wordle_task.is_running():
+        wordle_task.start()
     # Set the Bot Rich Presence
     await wordle_bot.change_presence(
         activity=discord.Game(name="Today's Wordle")
