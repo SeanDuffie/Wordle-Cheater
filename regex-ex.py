@@ -3,7 +3,7 @@ import os
 import pandas as pd
 
 RTDIR = os.path.dirname(__file__)
-df = pd.read_csv(filepath_or_buffer=f'{RTDIR}\\word_options.csv', names=["Words"])
+df = pd.read_csv(filepath_or_buffer=f'{RTDIR}\\valid_guesses.csv', names=["Words"])
 
 pattern = "..ing"
 
