@@ -45,6 +45,9 @@ TIMES = [
     datetime.time(18, tzinfo=LOCAL_TZ),
     datetime.time(0, tzinfo=LOCAL_TZ)
 ]
+
+FIRST_WORDLE = datetime.date(2021, 6, 19)
+WORDLE_NUMBER = (datetime.date.today() - FIRST_WORDLE).days
 #############################################
 
 ############ GET ENVIRONMENT VARIABLES ############
@@ -57,7 +60,7 @@ DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 # Default Channel to execute Wordle commands in
 CTX = None
 DF = pd.DataFrame(columns=["Time", "User", "Times Played", "Average Score", "Success Ratio", "Bot Win Ratio", "Guess 1", "Guess 2", "Guess 3", "Guess 4", "Guess 5", "Guess 6"])
-banks: Dict[discord.User, List[str]] = {}
+history: Dict[discord.User, List[Tuple[str, str]]] = {}
 solutions: List[str] = ["", "", ""]
 
 # NOTE: I use commands.Bot because it extends features of the Client to allow things like commands
@@ -146,31 +149,34 @@ async def play(ctx: discord.ext.commands.context.Context, word: str, mode: int =
         assert len(word) == 5
     except AssertionError:
         await ctx.reply("Invalid Guess")
+        return
+
     # Check mode for errors
     try:
         assert mode >= 0
         assert mode <= 3
     except AssertionError:
         await ctx.reply("Invalid Mode")
-    # Read user input
-    if ctx.author not in banks:
-        banks[ctx.author] = []
+        return
 
-    if len(banks[ctx.author]) > 6:
+    # If the user hasn't guessed today, assign them a spot
+    if ctx.author not in history:
+        history[ctx.author] = []
+
+    # Check if the user has exceeded their guess count for the day
+    if len(history[ctx.author]) > 6:
         await ctx.reply("You've exceeded your maximum guesses :(")
-        # Delete user message
-    else:
-        banks[ctx.author].append(word)
-        print(banks[ctx.author])
+        return
 
-        # Send ephemeral message output
-        await ctx.reply(f"You played {word}! Only you can see this...", ephemeral=True)
+    # Send ephemeral message output of guess
+    await ctx.reply(f"You played {word}! Only you can see this...", ephemeral=True)
 
-        result = check(guess=word, solution=solutions[mode])
-
-        # Send public message of results
-        result = result.replace("2", ":green_square:").replace("1", ":yellow_square:").replace("0", ":black_large_square:")
-        await ctx.send(f"{ctx.author.mention} Wordle  | Guess {len(banks[ctx.author])}: {result}")
+    # Send public message of results
+    result = check(guess=word, solution=solutions[mode])
+    result = result.replace("2", ":green_square:").replace("1", ":yellow_square:").replace("0", ":black_large_square:")
+    history[ctx.author].append((word, result))
+    print(history[ctx.author])
+    await ctx.send(f"{ctx.author.mention} Wordle {WORDLE_NUMBER} | Guess {len(history[ctx.author])}: {result}")
 
     # # Delete user message
     # await ctx.message.delete()
@@ -194,9 +200,7 @@ async def challenge(ctx: discord.ext.commands.context.Context, user: discord.Use
 async def wordle_task():
     """ Play todays Wordle every day at 8am """
     url = "https://www.nytimes.com/games/wordle/index.html"
-    first = datetime.date(2021, 6, 19)
-    number = (datetime.date.today() - first).days
-    response = f"Wordle {number:,} #\n\n"
+    response = f"Wordle {WORDLE_NUMBER:,} #\n\n"
     guess_count = 0
 
     with RealPlayer(url) as rp:
@@ -219,24 +223,22 @@ async def wordle_task():
 @discord.ext.tasks.loop(time=TIMES[1])
 async def wordle_noon():
     """ Play todays Wordle every day at 8am """
-    url = "https://www.nytimes.com/games/wordle/index.html"
-    first = datetime.date(2021, 6, 19)
-    number = (datetime.date.today() - first).days
-    response = f"Wordle {number:,} #\n\n"
+    response = f"Wordle {WORDLE_NUMBER:,} #\n\n"
     guess_count = 0
 
     wb = WordBank()
     solutions[1] = wb.word_bank["Words"][random.randint(0,len(wb.word_bank["Words"]))]
 
-    with RealPlayer(url) as rp:
-        for item in rp.run_generator():
-            line = item[1].replace("2", ":green_square:").replace("1", ":yellow_square:").replace("0", ":black_large_square:")
-            response += line + "\n"
-            guess_count += 1
+    # FIXME: Update with Tester Generator for simulated solutions
+    # with RealPlayer(url) as rp:
+    #     for item in rp.run_generator():
+    #         line = item[1].replace("2", ":green_square:").replace("1", ":yellow_square:").replace("0", ":black_large_square:")
+    #         response += line + "\n"
+    #         guess_count += 1
 
-        if guess_count > 6:
-            guess_count = "x"
-        response = response.replace("#", f"{guess_count}/6")
+    #     if guess_count > 6:
+    #         guess_count = "x"
+    #     response = response.replace("#", f"{guess_count}/6")
 
     for channel in wordle_bot.get_all_channels():
         if channel.name.lower() in ["wordle", "worldle", "nyt"]:
@@ -245,24 +247,22 @@ async def wordle_noon():
 @discord.ext.tasks.loop(time=TIMES[2])
 async def wordle_evening():
     """ Play todays Wordle every day at 8am """
-    url = "https://www.nytimes.com/games/wordle/index.html"
-    first = datetime.date(2021, 6, 19)
-    number = (datetime.date.today() - first).days
-    response = f"Wordle {number:,} #\n\n"
+    response = f"Wordle {WORDLE_NUMBER:,} #\n\n"
     guess_count = 0
 
     wb = WordBank()
     solutions[2] = wb.word_bank["Words"][random.randint(0,len(wb.word_bank["Words"]))]
 
-    with RealPlayer(url) as rp:
-        for item in rp.run_generator():
-            line = item[1].replace("2", ":green_square:").replace("1", ":yellow_square:").replace("0", ":black_large_square:")
-            response += line + "\n"
-            guess_count += 1
+    # FIXME: Update with Tester Generator for simulated solutions
+    # with RealPlayer(url) as rp:
+    #     for item in rp.run_generator():
+    #         line = item[1].replace("2", ":green_square:").replace("1", ":yellow_square:").replace("0", ":black_large_square:")
+    #         response += line + "\n"
+    #         guess_count += 1
 
-        if guess_count > 6:
-            guess_count = "x"
-        response = response.replace("#", f"{guess_count}/6")
+    #     if guess_count > 6:
+    #         guess_count = "x"
+    #     response = response.replace("#", f"{guess_count}/6")
 
     for channel in wordle_bot.get_all_channels():
         if channel.name.lower() in ["wordle", "worldle", "nyt"]:
@@ -271,29 +271,15 @@ async def wordle_evening():
 @discord.ext.tasks.loop(time=TIMES[3])
 async def reset():
     """ Resets everything at midnight """
-    first = datetime.date(2021, 6, 19)
-    number = (datetime.date.today() - first).days
+    global WORDLE_NUMBER
+    WORDLE_NUMBER = (datetime.date.today() - FIRST_WORDLE).days
 
     for channel in wordle_bot.get_all_channels():
         if channel.name.lower() in ["wordle", "worldle", "nyt"]:
-            await channel.send(f"Resetting the Wordle for Day {number:,}")
+            await channel.send(f"Resetting the Wordle for Day {WORDLE_NUMBER:,}")
 
-    global banks
-    banks = {}
-
-# @discord.ext.tasks.loop(time=BONUS_SCH)
-# async def bonus_wordle_task():
-#     """ Play todays Wordle every day at 8am """
-#     first = datetime.date(2021, 6, 19)
-#     number = (datetime.date.today() - first).days
-#     response = f"Wordle {number:,} #\n\n"
-#     guess_count = 0
-
-#     cur = datetime.datetime.now(tz=LOCAL_TZ)
-#     noon = datetime.datetime.combine(datetime.date.today(), BONUS_SCH[0])
-#     eve = datetime.datetime.combine(datetime.date.today(), BONUS_SCH[1])
-#     if noon <= cur:
-#         nxt = nxt + datetime.timedelta(days=1)
+    global history
+    history = {}
 
 @wordle_bot.event
 async def on_ready():
