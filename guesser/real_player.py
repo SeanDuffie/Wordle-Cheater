@@ -27,8 +27,6 @@ class RealPlayer():
     """
     def __init__(self, url: str):
         # Launch the Chrome browser
-        # NOTE: This was working on one computer but not another. Adding the ChromeDriverManager seemed to fix it, but I'm still cautious.
-        # FIXME: This line behaves differently on different versions of python
         match sys.version_info[1]:
             case 12:
                 self.driver = selenium.webdriver.Chrome()
@@ -57,7 +55,7 @@ class RealPlayer():
         self.driver.close()
         self.driver.quit()
 
-    def select_button(self, method: str, value: str) -> None:
+    def select_button(self, method: str, value: str, delay: float = 0.1) -> None:
         """ Click an element on the webpage
 
         Used to locate and close dialog/tutorial boxes when they pop up.
@@ -65,9 +63,10 @@ class RealPlayer():
         Args:
             method (str): What method to use to find it? Class name, xpath, id, etc.
             value (str): What is the value to search for?
+            delay (float): How long to wait after the button is pressed
         """
         self.driver.find_element(by=method, value=value).click()
-        time.sleep(.1)
+        time.sleep(delay)
 
     def play_word(self, word: str) -> str:
         """ Plays a word on the NYT Wordle webpage by typing it.
