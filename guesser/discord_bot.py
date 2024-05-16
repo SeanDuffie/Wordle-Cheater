@@ -67,7 +67,7 @@ solutions: List[str] = ["", "", ""]
 # NOTE: I use commands.Bot because it extends features of the Client to allow things like commands
 # Initialize Discord Bot
 wordle_bot = discord.ext.commands.Bot(
-    command_prefix="!",
+    command_prefix="/",
     intents=intents,
     help_command=discord.ext.commands.HelpCommand()
 )
@@ -144,11 +144,13 @@ async def wordle(ctx: discord.ext.commands.context.Context):
 
 @wordle_bot.command()
 async def play(ctx: discord.ext.commands.context.Context, word: str, mode: int = 0):
-    # # If the solution is not populated, it must be generated or retrieved
+    # If the solution is not populated, it must be generated or retrieved
     if solutions[mode] == "":
         match mode:
             case 0:
-                wordle(ctx)
+                await ctx.send("Wordle solution is currently unknown. Please run '/wordle' first.")
+                await ctx.message.delete()
+                return
             case _:
                 wb = WordBank()
                 solutions[mode] = wb.get_rand()
@@ -158,7 +160,16 @@ async def play(ctx: discord.ext.commands.context.Context, word: str, mode: int =
         assert word.isalpha()
         assert len(word) == 5
     except AssertionError:
-        await ctx.reply("Invalid Guess")
+        await ctx.send(f"{ctx.author.mention} Invalid Guess, must be alphabetical and 5 characters long.")
+        await ctx.message.delete()
+        return
+
+    try:
+        wb = WordBank()
+        assert word in wb.original_bank["Words"]
+    except AssertionError:
+        await ctx.send(f"{ctx.author.mention} Invalid Guess, must be in the wordle database")
+        await ctx.message.delete()
         return
 
     # Check mode for errors
@@ -166,12 +177,18 @@ async def play(ctx: discord.ext.commands.context.Context, word: str, mode: int =
         assert mode >= 0
         assert mode <= 3
     except AssertionError:
-        await ctx.reply("Invalid Mode")
+        await ctx.send(f"{ctx.author.mention} Invalid Mode for '/play' command. Please select 1, 2, or 3 (nyt, afternoon, evening)")
+        await ctx.message.delete()
         return
 
     # If the user hasn't guessed today, assign them a spot
     if ctx.author not in history:
         history[ctx.author] = []
+    # If they have guessed already, check for victory conditions
+    elif history[ctx.author][len(history[ctx.author]-1)][1] == "22222":
+        await ctx.send(f"{ctx.author.mention} You've already won for the day! Why are you still guessing?")
+        await ctx.message.delete()
+        return
 
     # Check if the user has exceeded their guess count for the day
     if len(history[ctx.author]) >= 6:
@@ -183,9 +200,9 @@ async def play(ctx: discord.ext.commands.context.Context, word: str, mode: int =
 
     # Send ephemeral message output of guess
     try:
-        await ctx.reply(f"You played {word}! Only you can see this...", ephemeral=True)
+        await ctx.reply(f"You played {word}! Only you can see this... (reply)", ephemeral=True)
     except discord.errors.HTTPException:
-        await ctx.send(f"{ctx.author.mention} played {word}! Only you can see this...", ephemeral=True)
+        await ctx.send(f"{ctx.author.mention} played {word}! Only you can see this... (send)", ephemeral=True)
 
     # Send public message of results
     result = check(guess=word, solution=solutions[mode])
