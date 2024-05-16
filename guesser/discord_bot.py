@@ -30,8 +30,8 @@ import discord.ext.tasks
 import pandas as pd
 from dotenv import load_dotenv
 from real_player import RealPlayer
+from sim_player import SimPlayer
 from word_bank import WordBank
-from tester import Tester
 
 # Set Discord intents (these are permissions that determine what the bot is allowed to observe)
 intents = discord.Intents.default()
@@ -261,17 +261,15 @@ async def wordle_noon():
     wb = WordBank()
     solutions[1] = wb.get_rand()
 
-    tester = 
-    # FIXME: Update with Tester Generator for simulated solutions
-    # with RealPlayer(url) as rp:
-    #     for item in rp.run_generator():
-    #         line = item[1].replace("2", ":green_square:").replace("1", ":yellow_square:").replace("0", ":black_large_square:")
-    #         response += line + "\n"
-    #         guess_count += 1
+    with SimPlayer(solution=solutions[1]) as sp:
+        for item in sp.run_generator():
+            line = item[1].replace("2", ":green_square:").replace("1", ":yellow_square:").replace("0", ":black_large_square:")
+            response += line + "\n"
+            guess_count += 1
 
-    #     if guess_count > 6:
-    #         guess_count = "x"
-    #     response = response.replace("#", f"{guess_count}/6")
+        if guess_count > 6:
+            guess_count = "x"
+        response = response.replace("#", f"{guess_count}/6")
 
     for channel in wordle_bot.get_all_channels():
         if channel.name.lower() in ["wordle", "worldle", "nyt"]:
@@ -288,15 +286,15 @@ async def wordle_evening():
     solutions[2] = wb.get_rand()
 
     # FIXME: Update with Tester Generator for simulated solutions
-    # with RealPlayer(url) as rp:
-    #     for item in rp.run_generator():
-    #         line = item[1].replace("2", ":green_square:").replace("1", ":yellow_square:").replace("0", ":black_large_square:")
-    #         response += line + "\n"
-    #         guess_count += 1
+    with SimPlayer(solution=solutions[2]) as sp:
+        for item in sp.run_generator():
+            line = item[1].replace("2", ":green_square:").replace("1", ":yellow_square:").replace("0", ":black_large_square:")
+            response += line + "\n"
+            guess_count += 1
 
-    #     if guess_count > 6:
-    #         guess_count = "x"
-    #     response = response.replace("#", f"{guess_count}/6")
+        if guess_count > 6:
+            guess_count = "x"
+        response = response.replace("#", f"{guess_count}/6")
 
     for channel in wordle_bot.get_all_channels():
         if channel.name.lower() in ["wordle", "worldle", "nyt"]:
