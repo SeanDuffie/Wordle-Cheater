@@ -6,7 +6,7 @@
 """
 import sys
 import time
-from typing import Generator
+from typing import Generator, Tuple
 
 import selenium.webdriver
 from selenium.webdriver.common.action_chains import ActionChains
@@ -132,7 +132,7 @@ class RealPlayer():
 
         return result
 
-    def run_generator(self) -> Generator[tuple[str, str], None, None]:
+    def run_generator(self) -> Generator[Tuple[str, str], None, None]:
         """ Main runner for RealPlayer """
         wb = WordBank()
         guess = "flash"
@@ -198,8 +198,8 @@ def run():
     return history
 
 if __name__ == "__main__":
-    url = "https://www.nytimes.com/games/wordle/index.html"
-    with RealPlayer(url) as rp:
+    URL = "https://www.nytimes.com/games/wordle/index.html"
+    with RealPlayer(URL) as rp:
         print(list(rp.run_generator()))
 
     print("\n\nTAKE TWO:")
