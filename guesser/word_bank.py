@@ -19,6 +19,13 @@ RTDIR = os.path.dirname(__file__)
 
 import difflib
 
+METHODS = {
+    "cum": 0,
+    "uni": 1,
+    "slo": 2,
+    "tot": 3
+}
+
 
 def exact_comp(first_word, second_word):
     """_summary_
@@ -107,6 +114,7 @@ class WordBank:
         Args:
             word (str): Guess that will be used to modify the word bank
             res (str): Results from the guess, 2 is correct, 1 is present, 0 is rejected
+            method (str): What method should be used to sort for the next guess?
 
         Returns:
             str: recommended next guess based on probability algorithm
