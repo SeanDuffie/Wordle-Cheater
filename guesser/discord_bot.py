@@ -21,6 +21,7 @@
 import datetime
 import os
 import random
+from typing import Dict, List, Tuple
 
 import discord
 import discord.ext
@@ -30,7 +31,7 @@ import pandas as pd
 from dotenv import load_dotenv
 from real_player import RealPlayer
 from word_bank import WordBank
-from typing import Dict, List, Tuple
+from tester import Tester
 
 # Set Discord intents (these are permissions that determine what the bot is allowed to observe)
 intents = discord.Intents.default()
@@ -143,6 +144,15 @@ async def wordle(ctx: discord.ext.commands.context.Context):
 
 @wordle_bot.command()
 async def play(ctx: discord.ext.commands.context.Context, word: str, mode: int = 0):
+    # # If the solution is not populated, it must be generated or retrieved
+    if solutions[mode] == "":
+        match mode:
+            case 0:
+                wordle(ctx)
+            case _:
+                wb = WordBank()
+                solutions[mode] = wb.get_rand()
+
     # Check message for errors
     try:
         assert word.isalpha()
@@ -164,22 +174,27 @@ async def play(ctx: discord.ext.commands.context.Context, word: str, mode: int =
         history[ctx.author] = []
 
     # Check if the user has exceeded their guess count for the day
-    if len(history[ctx.author]) > 6:
-        await ctx.reply("You've exceeded your maximum guesses :(")
+    if len(history[ctx.author]) >= 6:
+        try:
+            await ctx.reply("You've exceeded your maximum guesses :(")
+        except discord.errors.HTTPException:
+            await ctx.send(f"{ctx.author.mention} exceeded their maximum guesses :(", ephemeral=True)
         return
 
     # Send ephemeral message output of guess
-    await ctx.reply(f"You played {word}! Only you can see this...", ephemeral=True)
+    try:
+        await ctx.reply(f"You played {word}! Only you can see this...", ephemeral=True)
+    except discord.errors.HTTPException:
+        await ctx.send(f"{ctx.author.mention} played {word}! Only you can see this...", ephemeral=True)
 
     # Send public message of results
     result = check(guess=word, solution=solutions[mode])
     result = result.replace("2", ":green_square:").replace("1", ":yellow_square:").replace("0", ":black_large_square:")
     history[ctx.author].append((word, result))
-    print(history[ctx.author])
     await ctx.send(f"{ctx.author.mention} Wordle {WORDLE_NUMBER} | Guess {len(history[ctx.author])}: {result}")
 
-    # # Delete user message
-    # await ctx.message.delete()
+    # Delete user message
+    await ctx.message.delete()
 
 @wordle_bot.command()
 async def stats(ctx: discord.ext.commands.context.Context, user: discord.User=None):
@@ -222,13 +237,14 @@ async def wordle_task():
 
 @discord.ext.tasks.loop(time=TIMES[1])
 async def wordle_noon():
-    """ Play todays Wordle every day at 8am """
+    """ Resets the Noon Wordle at 12pm every day """
     response = f"Wordle {WORDLE_NUMBER:,} #\n\n"
     guess_count = 0
 
     wb = WordBank()
-    solutions[1] = wb.word_bank["Words"][random.randint(0,len(wb.word_bank["Words"]))]
+    solutions[1] = wb.get_rand()
 
+    tester = 
     # FIXME: Update with Tester Generator for simulated solutions
     # with RealPlayer(url) as rp:
     #     for item in rp.run_generator():
@@ -242,16 +258,17 @@ async def wordle_noon():
 
     for channel in wordle_bot.get_all_channels():
         if channel.name.lower() in ["wordle", "worldle", "nyt"]:
+            await channel.send("New Afternoon Wordle Available!")
             await channel.send(response)
 
 @discord.ext.tasks.loop(time=TIMES[2])
 async def wordle_evening():
-    """ Play todays Wordle every day at 8am """
+    """ Resets the evening Wordle at 6pm every day """
     response = f"Wordle {WORDLE_NUMBER:,} #\n\n"
     guess_count = 0
 
     wb = WordBank()
-    solutions[2] = wb.word_bank["Words"][random.randint(0,len(wb.word_bank["Words"]))]
+    solutions[2] = wb.get_rand()
 
     # FIXME: Update with Tester Generator for simulated solutions
     # with RealPlayer(url) as rp:
@@ -266,6 +283,7 @@ async def wordle_evening():
 
     for channel in wordle_bot.get_all_channels():
         if channel.name.lower() in ["wordle", "worldle", "nyt"]:
+            await channel.send("New Evening Wordle Available!")
             await channel.send(response)
 
 @discord.ext.tasks.loop(time=TIMES[3])
@@ -287,6 +305,10 @@ async def on_ready():
     # Start the wordle schedule automatically
     if not wordle_task.is_running():
         wordle_task.start()
+    if not wordle_noon.is_running():
+        wordle_noon.start()
+    if not wordle_evening.is_running():
+        wordle_evening.start()
     # Set the Bot Rich Presence
     await wordle_bot.change_presence(
         activity=discord.Game(name="Today's Wordle")

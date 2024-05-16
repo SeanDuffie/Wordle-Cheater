@@ -11,6 +11,7 @@
 import datetime
 import os
 from typing import Literal
+import random
 
 import pandas as pd
 
@@ -415,6 +416,18 @@ class WordBank:
                 return False
         return True
 
+    def get_rand(self, orig: bool = True) -> str:
+        """ Gets a random word from the selection
+
+        Args:
+            orig (bool, optional): Should it use the whole word bank selection or the narrowed? Defaults to True.
+
+        Returns:
+            str: The randomly chosen word.
+        """
+        if orig:
+            return self.original_bank["Words"][random.randint(0, len(self.original_bank["Words"]))]
+        return self.word_bank["Words"][random.randint(0, len(self.word_bank["Words"]))]
 
 if __name__ == "__main__":
     # Generate the Wordbank object (This loads the dictionary list)
