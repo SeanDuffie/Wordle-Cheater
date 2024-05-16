@@ -154,6 +154,8 @@ class WordBank:
 
         # Generate a mask of the WordBank Dataframe by comparing the options with the known data
         mask = self.word_bank["Words"].apply(self.search)
+        # pattern = "..ing"
+        # mask2 = self.word_bank["Words"].str.contains(pat=pattern, regex=True)
         # Apply the mask on the Dataframe and drop all False entries
         self.word_bank = self.word_bank[mask].reset_index(drop=True)
 
@@ -418,8 +420,8 @@ class WordBank:
 
 if __name__ == "__main__":
     # Generate the Wordbank object (This loads the dictionary list)
-    b = WordBank(debug=True)
-    # b.submit_guess(word="     ", res="00000", method="tot")
+    wb = WordBank(debug=True)
+    # wb.submit_guess(word="     ", res="00000", method="tot")
     # GUESS_COUNT = 1
 
     # # Enter each guess along with the results recieved from Wordle
@@ -444,7 +446,7 @@ if __name__ == "__main__":
     #         break
 
     #     # Perform the actual check and suggest next words
-    #     guess_response = b.submit_guess(word=GUESS.lower(), res=RESULTS, method='tot')
+    #     guess_response = wb.submit_guess(word=GUESS.lower(), res=RESULTS, method='tot')
 
     #     if guess_response == "Failed":
     #         print("Something went wrong!")
