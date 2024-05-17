@@ -47,7 +47,7 @@ class RealPlayer():
         time.sleep(.4)
 
         self.counter = 0
-        self.wb = WordBank()
+        self.wb = WordBank(debug=True)
         self.guess = first
 
     def __enter__(self):
@@ -136,8 +136,6 @@ class RealPlayer():
 
     def run_generator(self) -> Generator[Tuple[str, str], None, None]:
         """ Main runner for RealPlayer """
-        guess = "flash"
-
         while True:
             try:
                 # Submit guess, then yield results
@@ -156,12 +154,12 @@ class RealPlayer():
                     return
 
                 # Get suggestion from the wordbank for the next guess
-                self.guess = self.wb.submit_guess(word=guess, res=result, method="slo")
+                self.guess = self.wb.submit_guess(word=self.guess, res=result, method="slo")
             except AssertionError:
-                if guess.lower() == "failed":
+                if self.guess.lower() == "failed":
                     print("Error! Word Bank ran out of options! (This shouldn't be possible)")
                     return
-                print(f"Invalid Guess: {guess}")
+                print(f"Invalid Guess: {self.guess}")
 
 def run():
     """ Main runner for RealPlayer """
@@ -202,5 +200,5 @@ if __name__ == "__main__":
     with RealPlayer(URL) as rp:
         print(list(rp.run_generator()))
 
-    print("\n\nTAKE TWO:")
-    print(run())
+    # print("\n\nTAKE TWO:")
+    # print(run())
