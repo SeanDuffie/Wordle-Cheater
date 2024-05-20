@@ -1,6 +1,6 @@
 """ @file sim_player.py
     @author Sean Duffie
-    @brief Simulates a player with a known input. This can be done either for statistics or just simulating a playthrough.
+    @brief Simulates a Wordle player with a known input.
 
 TODO: Test if statistics are based on number of results left rather than letters eliminated
 TODO: Test switching method mid round
@@ -18,20 +18,29 @@ import pandas as pd
 from word_bank import WordBank
 
 RTDIR = os.path.dirname(__file__)
+OPTIONS = WordBank().original_bank["Words"].tolist()
 
 
 class SimPlayer:
     """ SimPlayer will be what gathers the statistical data from performance testing
     """
-    def __init__(self, solution: str = None, method: str = "slo") -> None:
-        self.wb = WordBank()
+    def __init__(self, solution: str = None, first: str = "flash", method: str = "slo") -> None:
+        self.wb = WordBank(debug=True)
 
         if solution == "rand":
             solution = self.wb.get_rand()
 
         if solution is not None:
-            assert solution in self.wb.original_bank["Words"]
+            assert len(solution) == 5
+            assert solution.isalpha()
+            assert solution in OPTIONS
         self.solution = solution
+
+        # TODO: Should guesses be stored inside of the object instead of in the generator call?
+        assert len(first) == 5
+        assert first.isalpha()
+        assert first in OPTIONS
+        self.guess = first
 
         assert method in ["cum", "uni", "slo", "tot"]
         self.method = method
@@ -75,58 +84,86 @@ class SimPlayer:
 
         return result
 
-    def run_generator(self, guess: str = "flash", method: Literal['cum', 'uni', 'slo', 'tot'] = None) -> Generator[Tuple[str, str], None, None]:
+    def update_method(self, method: Literal['cum', 'uni', 'slo', 'tot'] = None) -> None:
         """ Main runner for RealPlayer """
         if method is not None:
             assert method in ["cum", "uni", "slo", "tot"]
             self.method = method
 
-        assert len(guess) == 5
-        assert guess.isalpha()
-        assert guess in self.wb.original_bank["Words"].tolist()
+    def run_generator(self) -> Generator[Tuple[str, str], None, None]:
+        """ Plays the Wordle one at a time.
+        
+        This is a more efficient solution for interfacing with other code or being flexible.
+        This will also help to run multiple instances at once and store them for the discord bot.
+
+        Yields:
+            Generator[Tuple[str, str], None, None]: Generator called for every attempt.
+        """
+        # assert len(guess) == 5
+        # assert guess.isalpha()
+        # assert guess in OPTIONS
 
         while True:
             try:
                 # If the solution is unknown, prompt user for results, otherwise generate them
                 if self.solution is None:
-                    while True:
-                        try:
-                            result = input(f"What were the results for '{guess}'? (2=green, 1=yellow, 0=grey) (ex. '02001'): ")
-                            if not len(result) == 5:
-                                raise ValueError("Invalid Result size, must be 5 digits. Try Again.")
-                            if not result.isnumeric():
-                                raise ValueError("Result must be numerical (no special or letters). Try Again.")
-                            if any(inv_num in result for inv_num in ['3', '4', '5', '6', '7', '8', '9']):
-                                raise ValueError("Result can only contain [0, 1, 2]. Try Again.")
-                            break
-                        except ValueError as e:
-                            print(e)
-                            # logger.error(e)
+                    result = get_valid_results(guess=self.guess)
                 else:
                     # Submit guess, then yield results
-                    result = self.read_results(guess=guess)
+                    result = self.read_results(guess=self.guess)
 
                 # Get suggestion from the wordbank for the next guess
-                next_guess = self.wb.submit_guess(word=guess, res=result, method="slo")
+                print(f"Submitting guess: {self.guess} (results: {result})")
+                next_guess = self.wb.submit_guess(word=self.guess, res=result, method="slo")
 
                 # Yield Generator output
-                print("\n\n\nYIELDING\n\n\n")
-                response = yield (guess, result), next_guess
-                if response is not None:
-                    assert len(response) == 5
-                    assert guess.isalpha()
-                    assert guess in self.wb.original_bank["Words"]
-                guess = next_guess if response is None else response
+                response = yield self.guess, result
+
+                # Process response, if None then use default
+                self.guess = next_guess if response is None else response
 
                 # Check victory conditions, or if out of guesses, get the final result
                 if result == "22222" or result.isalpha():
                     return
 
             except AssertionError:
-                if guess.lower() == "failed":
+                if self.guess.lower() == "failed":
                     print("Error! Word Bank ran out of options! (This shouldn't be possible)")
                     return
-                print(f"Invalid Guess: {guess}")
+                print(f"Invalid Guess: {self.guess}")
+
+def get_valid_results(guess):
+    while True:
+        try:
+            result = input(f"What were the results for '{guess}'? (2=green, 1=yellow, 0=grey) (ex. '02001'): ")
+            if not len(result) == 5:
+                raise ValueError("Invalid Result size, must be 5 digits..")
+            if not result.isnumeric():
+                raise ValueError("Result must be numerical (no special or letters).")
+            if any(inv_num in result for inv_num in ['3', '4', '5', '6', '7', '8', '9']):
+                raise ValueError("Result can only contain [0, 1, 2].")
+            break
+        except ValueError as e:
+            print(e)
+            # logger.error(e)
+    return result
+
+def get_valid_guess():
+    while True:
+        try:
+            guess = input("Enter guess: ")
+            if not len(guess) == 5:
+                raise ValueError("Word must be 5 letters long. Try Again.")
+            if not guess.isalpha():
+                raise ValueError("Guess must be alphabetical (no special or numbers).")
+            if guess not in OPTIONS:
+                print(OPTIONS)
+                raise ValueError("Word guess must be in the Wordle database.")
+            break
+        except ValueError as e:
+            print(e)
+            # logger.error(e)
+    return guess
 
 # TODO: FIXME: Eventually change the typehinting for method to a more sophisticated dict or other typehint method
 def play(start: str = "crane", solution: str = None, method: str = 'slo', manual: bool = False):
@@ -148,11 +185,14 @@ def play(start: str = "crane", solution: str = None, method: str = 'slo', manual
 
     # FIXME: Yielding is not working properly, use this: https://stackoverflow.com/questions/55247806/python-passing-argument-to-generator-object-created-by-generator-expression
     with SimPlayer(solution=solution, method=method) as player:
-        while True:
+        generator = player.run_generator()
+
+        for guess, result in generator:
             print(f"Guess #{len(guesses)}")
-            (guess, result), next_guess = player.run_generator(guess=guess)
+
             # Log result history
             guesses.append((guess, result))
+            print(f"\n\n\n{guesses}\n\n\n")
 
             # Check for victory conditions
             if result == "22222":
@@ -160,27 +200,15 @@ def play(start: str = "crane", solution: str = None, method: str = 'slo', manual
                 break
 
             if manual:
-                while True:
-                    try:
-                        guess = input(f"Enter guess #{len(guesses)+1}: ")
-                        if not len(guess) == 5:
-                            raise ValueError("Word must be 5 letters long. Try Again.")
-                        if not guess.isalpha():
-                            raise ValueError("Guess must be alphabetical (no special or numbers).")
-                        if not player.wb.word_bank["Words"].str.contains(guess).any():
-                            print(player.wb.word_bank["Words"])
-                            raise ValueError("Word guess must be in the Wordle database.")
-                        break
-                    except ValueError as e:
-                        print(e)
-                        # logger.error(e)
-            else:
-                guess = next_guess
+                new_guess = get_valid_guess()
+                generator.send(new_guess)
 
             # Check to make sure that the dataframe didn't run out of choices
             if guess.lower() == "failed":
                 print("Error! Ran out of options! (This shouldn't be possible)")
                 break
+
+        # End of generator
 
     return guesses
 
