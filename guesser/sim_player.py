@@ -120,7 +120,11 @@ class SimPlayer:
                 response = yield self.guess, result
 
                 # Process response, if None then use default
-                self.guess = next_guess if response is None else response
+                if response is None:
+                    self.guess = next_guess
+                else:
+                    self.guess =  response
+                    yield self.guess
 
                 # Check victory conditions, or if out of guesses, get the final result
                 if result == "22222" or result.isalpha():
@@ -133,9 +137,22 @@ class SimPlayer:
                 print(f"Invalid Guess: {self.guess}")
 
 def get_valid_results(guess):
+    """ Gets valid result string from user terminal input. Loops on error to avoid need to restart.
+
+    Args:
+        guess (str): What is the word that is being guessed? This is mainly for user experience.
+
+    Raises:
+        ValueError: Raises an error if the input is the wrong length.
+        ValueError: Raises an error if the input contains invalid characters.
+        ValueError: Raises an error if the input contains invalid numbers.
+
+    Returns:
+        str: The string format of results accepted by WordBank().
+    """
     while True:
         try:
-            result = input(f"What were the results for '{guess}'? (2=green, 1=yellow, 0=grey) (ex. '02001'): ")
+            result = input(f"What were the results for '{guess}'? (2=green, 1=yellow, 0=grey): ")
             if not len(result) == 5:
                 raise ValueError("Invalid Result size, must be 5 digits..")
             if not result.isnumeric():
@@ -149,6 +166,16 @@ def get_valid_results(guess):
     return result
 
 def get_valid_guess():
+    """ Gets a valid guess from user terminal input. Loops on error to avoid need for restart.
+
+    Raises:
+        ValueError: Raises an error if the input is the wrong length.
+        ValueError: Raises an error if the input contains invalid characters.
+        ValueError: Raises an error if the string is not contained within the list of options.
+
+    Returns:
+        str: The acquired word input (after being checked for validity).
+    """
     while True:
         try:
             guess = input("Enter guess: ")
@@ -165,8 +192,9 @@ def get_valid_guess():
             # logger.error(e)
     return guess
 
-# TODO: FIXME: Eventually change the typehinting for method to a more sophisticated dict or other typehint method
-def play(start: str = "crane", solution: str = None, method: str = 'slo', manual: bool = False):
+# TODO: This may need to become a generator eventually for the discord bot
+# TODO: Eventually change the typehinting for method to a more sophisticated typehint method
+def play(start: str = None, solution: str = None, method: str = 'slo', manual: bool = False):
     """ Controls the actual play process of the game
 
     Args:
@@ -176,14 +204,20 @@ def play(start: str = "crane", solution: str = None, method: str = 'slo', manual
     """
     # Initialize list of guesses and first guess
     guesses = []
-    guess = start
+    if start is None:
+        if manual:
+            guess = get_valid_guess()
+        else:
+            guess = "flash"
+    else:
+        guess = start
 
     # If the solution is not defined, generate a random one
     if solution == "rand":
         wb = WordBank(debug=manual)
         solution = wb.word_bank["Words"][random.randint(0,len(wb.word_bank["Words"]))]
 
-    # FIXME: Yielding is not working properly, use this: https://stackoverflow.com/questions/55247806/python-passing-argument-to-generator-object-created-by-generator-expression
+    # NOTE: When yielding from a generator, calling send() will also yield an output to be handled.
     with SimPlayer(solution=solution, method=method) as player:
         generator = player.run_generator()
 
@@ -201,14 +235,13 @@ def play(start: str = "crane", solution: str = None, method: str = 'slo', manual
 
             if manual:
                 new_guess = get_valid_guess()
+                # Sends manual guess to the generator (Must be handled, yields a result)
                 generator.send(new_guess)
 
             # Check to make sure that the dataframe didn't run out of choices
             if guess.lower() == "failed":
                 print("Error! Ran out of options! (This shouldn't be possible)")
                 break
-
-        # End of generator
 
     return guesses
 
@@ -218,51 +251,70 @@ def permutate(method: Literal['cum', 'uni', 'slo', 'tot'] = 'tot'):
         All other logic should be handled in the WordBank class
         TODO: Add multiprocessing here for faster runtimes
     """
-    wb = WordBank()
-
-    other_headers = ["Time", "Start", "Average Score", "Min Score", "Max Score", "Failure Count", "Failures"]
-    df2 = pd.DataFrame(columns=other_headers)
+    permutations_df = pd.DataFrame(
+        columns=[
+            "Time",
+            "Start",
+            "Average Score",
+            "Min Score",
+            "Max Score",
+            "Failure Count",
+            "Failures"
+        ]
+    )
 
     # Loop through all starting words
     time_start_perm = datetime.datetime.now()
-    for start_word in ['flash']: # wb.word_options["Words"]: # ['flash', 'caste', 'crane', 'worst']: #
-        headers = ["Word", "Count"]
-        df = pd.DataFrame(columns=headers)
+    for start_word in ['flash']: # OPTIONS: # ['flash', 'caste', 'crane', 'worst']: #
+        start_word_df = pd.DataFrame(columns=["Word", "Count"])
         # TODO: Add multiprocessing here
         row = [start_word]
         failed = []
 
         time_start_word = datetime.datetime.now()
         # Loop through all potential solutions
-        for solution in wb.original_bank():
+        for solution in OPTIONS:
             guesses = play(start=start_word, solution=solution, manual=False, method=method)
 
             row.append(len(guesses))
-            df.loc[len(df.index)] = [solution, len(guesses)]
+            start_word_df.loc[len(start_word_df.index)] = [solution, len(guesses)]
 
             if len(guesses) > 6:
                 failed.append((solution, len(guesses), guesses))
 
-        df.to_csv(path_or_buf=f"{RTDIR}/../data/permutations_{method}_{start_word}_full.csv", index=False)
+        # Output to CSV
+        start_word_df.to_csv(
+            path_or_buf=f"{RTDIR}/../data/permutations_{method}_{start_word}_full.csv",
+            index=False
+        )
+
+        # Calculate times
         time_stop_word = datetime.datetime.now()
         rrow = np.array(row[1:])
         word_time = time_stop_word-time_start_word
         print(f"Took {word_time} seconds to process {start_word}")
         print(f"{start_word} scored an average of {rrow.mean()} and failed {len(failed)} times")
 
+        # Append row to permutations DataFrame
         row2 = [word_time, start_word, rrow.mean(), rrow.min(), rrow.max(), len(failed), failed]
+        permutations_df.loc[len(permutations_df.index)] = row2
 
-        df2.loc[len(df2.index)] = row2
-
+    # Calculate total time for permutations
     time_stop_perm = datetime.datetime.now()
     print(f"Took {time_stop_perm-time_start_perm} seconds to complete the permutations")
 
-    # df.sort_values(by=["Odds", ""], ascending=False, inplace=True, ignore_index=True)
-    df2.sort_values(by=["Average Score", "Failure Count"], ascending=True, inplace=True, ignore_index=True)
-
-    df2.to_csv(path_or_buf=f"{RTDIR}/../data/permutation_{method}_stats.csv", index=False)
-
-    print(df2)
+    # start_word_df.sort_values(by=["Odds", ""], ascending=False, inplace=True, ignore_index=True)
+    permutations_df.sort_values(
+        by=["Average Score", "Failure Count"],
+        ascending=True,
+        inplace=True,
+        ignore_index=True
+    )
+    permutations_df.to_csv(
+        path_or_buf=f"{RTDIR}/../data/permutation_{method}_stats.csv",
+        index=False
+    )
+    print(permutations_df)
 
 
 if __name__ == "__main__":
