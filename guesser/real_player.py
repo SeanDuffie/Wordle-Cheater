@@ -31,7 +31,9 @@ class RealPlayer():
             case 12:
                 self.driver = selenium.webdriver.Chrome()
             case 10:
-                self.driver = selenium.webdriver.Chrome(executable_path=ChromeDriverManager().install())
+                self.driver = selenium.webdriver.Chrome(
+                    executable_path=ChromeDriverManager().install()
+                )
             case _:
                 self.driver = selenium.webdriver.Chrome()
 
@@ -81,8 +83,11 @@ class RealPlayer():
         """
         # Handle going over the guess limit
         if self.counter >= 6:
-            # Instead of returning nothing, we will go over the guess limit by one to get the actual answer
-            result = self.driver.find_element(by=By.XPATH, value='//*[@id="ToastContainer-module_gameToaster__HPkaC"]/div').text.lower()
+            # Instead of returning nothing, we will exceed the guess limit to get the actual answer
+            result = self.driver.find_element(
+                        by=By.XPATH,
+                        value='//*[@id="ToastContainer-module_gameToaster__HPkaC"]/div'
+                    ).text.lower()
         else:
             # Send the keypresses to the webpage
             self.actions.send_keys(word + "\n")
@@ -123,6 +128,7 @@ class RealPlayer():
         for i in range(5):
             index = row * 5 + i
             num, let, res = div_list[index].get_attribute("aria-label").split(sep=", ")
+            print(num, let, res)
 
             match res:
                 case "absent":
