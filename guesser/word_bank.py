@@ -8,16 +8,14 @@
     TODO: calculate statistics on which letters are most valuable to identify
     TODO: Guessing logic for automatic picking
 """
-import datetime
+import difflib
 import os
-from typing import Literal
 import random
 
 import pandas as pd
 
 RTDIR = os.path.dirname(__file__)
 
-import difflib
 
 METHODS = {
     "cum": 0,
@@ -79,8 +77,16 @@ class WordBank:
         #         word2 = row2["Words"]
 
         # tot_alpha, con_alpha, slot_alpha = self.generate_probs()
-        # self.original_bank["Slot Odds"] = self.original_bank["Words"].apply(func=self.solution_odds, args=(slot_alpha,True))
-        # self.original_bank.sort_values(by=["Slot Odds"], ascending=False, inplace=True, ignore_index=True)
+        # self.original_bank["Slot Odds"] = self.original_bank["Words"].apply(
+            # func=self.solution_odds,
+            # args=(slot_alpha,True)
+        # )
+        # self.original_bank.sort_values(
+            # by=["Slot Odds"],
+            # ascending=False,
+            # inplace=True,
+            # ignore_index=True
+        # )
         # print(self.original_bank)
 
     def read_file(self):
@@ -125,7 +131,7 @@ class WordBank:
         for i, letter in enumerate(word):
             if res[i] == "2":                           # RIGHT LETTER, RIGHT SPOT
                 self.confirmed[i] = letter
-                # In case a duplicate letter occurs before this slot is confirmed, remove the letter from rejected
+                # If a duplicate letter is rejected earlier, then confirmed, remove from rejected.
                 self.rejected[i].replace(letter, "")
 
             elif res[i] == "1":                         # RIGHT LETTER, WRONG SPOT
@@ -181,6 +187,7 @@ class WordBank:
         return True
 
     def eliminate(self):
+        """ Remove words from the word_bank that don't match the pattern """
         # Generate a mask of the WordBank Dataframe by comparing the options with the known data
         before = len(self.word_bank["Words"])
         mask = self.word_bank["Words"].apply(self.search)
@@ -313,6 +320,14 @@ class WordBank:
         return odds
 
     def examine_options(self, method: int):
+        """ Generate value of each word as a follow-up guess and sort based on method.
+
+        Args:
+            method (int): Which method should be used to calculate and sort the DataFrame.
+
+        Returns:
+            str: Word recommended from word_bank DataFrame.
+        """
         # Calculate the probability of remaining options and append as a column (based on config)
         # TODO: This could be condensed if I got rid of "tot" (3) method
         tot_alpha, con_alpha, slot_alpha = self.generate_probs()
