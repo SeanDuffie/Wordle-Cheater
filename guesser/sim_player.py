@@ -24,8 +24,8 @@ OPTIONS = WordBank().original_bank["Words"].tolist()
 class SimPlayer:
     """ SimPlayer will be what gathers the statistical data from performance testing
     """
-    def __init__(self, solution: str = None, first: str = "flash", method: str = "slo") -> None:
-        self.wb = WordBank(debug=True)
+    def __init__(self, solution: str = None, first: str = "flash", method: str = "slo", manual: bool = False) -> None:
+        self.wb = WordBank(debug=manual)
 
         if solution == "rand":
             solution = self.wb.get_rand()
@@ -62,25 +62,33 @@ class SimPlayer:
         Returns:
             str: Formatted results string that compares the solution with the guess
         """
+        # Must keep local copy of solution for each read since it will be overwritten with spaces.
+        solution = self.solution
         result = "00000"
 
+        # print(f"{guess=}, {solution=}")
         # First, eliminate all letters known to be correct, mask the correct letters with whitespace
         for i in range(5):
-            if guess[i] == self.solution[i]:
+            if guess[i] == solution[i]:
+                # print(f"{guess[i]} == {solution[i]} -> '2'")
                 result = result[:i] + "2" + result[i+1:]
                 guess = guess[:i] + " " + guess[i+1:]
-                self.solution = self.solution[:i] + " " + self.solution[i+1:]
+                solution = solution[:i] + " " + solution[i+1:]
 
         # Next, identify all the characters that are present but not in the correct spot
         # Doing it this way allows you to identify duplicate letters without looping on confirmed
         # Additionally, only one "possible" duplicate letter should be marked for each duplicate
         for i in range(5):
-            if guess[i] != " " and guess[i] in self.solution:
-                result = result[:i] + "1" + result[i+1:]
+            if guess[i] != " ":
+                if guess[i] in solution:
+                    result = result[:i] + "1" + result[i+1:]
 
-                # Replace the character in self.solution with whitespace to handle duplicates
-                j = self.solution.index(guess[i])
-                self.solution = self.solution[:j] + " " + self.solution[j+1:]
+                    # Replace the character in solution with whitespace to handle duplicates
+                    j = solution.index(guess[i])
+                    solution = solution[:j] + " " + solution[j+1:]
+                #     print(f"{guess[i]} is in {solution} -> '1'")
+                # else:
+                #     print(f"{guess[i]} is not in {solution} -> 0")
 
         return result
 
@@ -218,15 +226,12 @@ def play(start: str = None, solution: str = None, method: str = 'slo', manual: b
         solution = wb.word_bank["Words"][random.randint(0,len(wb.word_bank["Words"]))]
 
     # NOTE: When yielding from a generator, calling send() will also yield an output to be handled.
-    with SimPlayer(solution=solution, method=method) as player:
+    with SimPlayer(solution=solution, method=method, manual=manual) as player:
         generator = player.run_generator()
 
         for guess, result in generator:
-            print(f"Guess #{len(guesses)}")
-
             # Log result history
             guesses.append((guess, result))
-            print(f"\n\n\n{guesses}\n\n\n")
 
             # Check for victory conditions
             if result == "22222":
@@ -243,6 +248,7 @@ def play(start: str = None, solution: str = None, method: str = 'slo', manual: b
                 print("Error! Ran out of options! (This shouldn't be possible)")
                 break
 
+    print(f"{guesses}")
     return guesses
 
 def permutate(method: Literal['cum', 'uni', 'slo', 'tot'] = 'tot'):
@@ -323,6 +329,6 @@ if __name__ == "__main__":
     # permutate(method='slo')
     # permutate(method='tot')
 
-    # print(play(start="caste", solution="toxin", manual=True))
-    # print(play(start="flash", solution="mayor", manual=True))
-    print(play(start="flash", solution=None, manual=True))
+    # play(start="caste", solution="toxin", manual=True)
+    # play(start="flash", solution="mayor", manual=True)
+    play(start="flash", solution=None, manual=True)
