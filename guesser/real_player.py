@@ -25,13 +25,15 @@ class RealPlayer():
         This object is also designed to play nicely with both the WordBank object and
         the DiscordBot interfaces.
     """
-    def __init__(self, url: str):
+    def __init__(self, url: str, first: str = "flash"):
         # Launch the Chrome browser
         match sys.version_info[1]:
             case 12:
                 self.driver = selenium.webdriver.Chrome()
             case 10:
-                self.driver = selenium.webdriver.Chrome(executable_path=ChromeDriverManager().install())
+                self.driver = selenium.webdriver.Chrome(
+                    executable_path=ChromeDriverManager().install()
+                )
             case _:
                 self.driver = selenium.webdriver.Chrome()
 
@@ -47,6 +49,8 @@ class RealPlayer():
         time.sleep(.4)
 
         self.counter = 0
+        self.wb = WordBank(debug=True)
+        self.guess = first
 
     def __enter__(self):
         return self
@@ -79,8 +83,11 @@ class RealPlayer():
         """
         # Handle going over the guess limit
         if self.counter >= 6:
-            # Instead of returning nothing, we will go over the guess limit by one to get the actual answer
-            result = self.driver.find_element(by=By.XPATH, value='//*[@id="ToastContainer-module_gameToaster__HPkaC"]/div').text.lower()
+            # Instead of returning nothing, we will exceed the guess limit to get the actual answer
+            result = self.driver.find_element(
+                        by=By.XPATH,
+                        value='//*[@id="ToastContainer-module_gameToaster__HPkaC"]/div'
+                    ).text.lower()
         else:
             # Send the keypresses to the webpage
             self.actions.send_keys(word + "\n")
@@ -121,6 +128,7 @@ class RealPlayer():
         for i in range(5):
             index = row * 5 + i
             num, let, res = div_list[index].get_attribute("aria-label").split(sep=", ")
+            print(num, let, res)
 
             match res:
                 case "absent":
@@ -134,46 +142,42 @@ class RealPlayer():
 
     def run_generator(self) -> Generator[Tuple[str, str], None, None]:
         """ Main runner for RealPlayer """
-        wb = WordBank()
-        guess = "flash"
-
         while True:
             try:
                 # Submit guess, then yield results
-                result = self.play_word(guess)
+                result = self.play_word(self.guess)
 
                 # Check that the guess was accepted. TODO: If not, suggest a new one and continue.
                 if result is None:
-                    guess = "flash"
+                    self.guess = "flash"
                     continue
 
                 # Yield Generator output
-                yield (guess, result)
+                yield (self.guess, result)
 
                 # Check victory conditions, or if out of guesses, get the final result
                 if result == "22222" or result.isalpha():
                     return
 
                 # Get suggestion from the wordbank for the next guess
-                guess = wb.submit_guess(word=guess, res=result, method="slo")
+                self.guess = self.wb.submit_guess(word=self.guess, res=result, method="slo")
             except AssertionError:
-                if guess.lower() == "failed":
+                if self.guess.lower() == "failed":
                     print("Error! Word Bank ran out of options! (This shouldn't be possible)")
                     return
-                print(f"Invalid Guess: {guess}")
+                print(f"Invalid Guess: {self.guess}")
 
 def run():
     """ Main runner for RealPlayer """
     url = "https://www.nytimes.com/games/wordle/index.html"
-    wb = WordBank()
     guess = "flash"
     history = []
 
-    with RealPlayer(url=url) as player:
+    with RealPlayer(url=url, first="flash") as player:
         while True:
             try:
                 # Submit guess, then save results
-                result = player.play_word(guess)
+                result = player.play_word(player.guess)
 
                 # Check that the guess was accepted. TODO: If not, suggest a new one and continue.
                 if result is None:
@@ -188,7 +192,7 @@ def run():
                     break
 
                 # Get suggestion from the wordbank for the next guess
-                guess = wb.submit_guess(word=guess, res=result, method="slo")
+                player.guess = player.wb.submit_guess(word=guess, res=result, method="slo")
             except AssertionError:
                 if guess.lower() == "failed":
                     print("Error! Word Bank ran out of options! (This shouldn't be possible)")
@@ -202,5 +206,5 @@ if __name__ == "__main__":
     with RealPlayer(URL) as rp:
         print(list(rp.run_generator()))
 
-    print("\n\nTAKE TWO:")
-    print(run())
+    # print("\n\nTAKE TWO:")
+    # print(run())

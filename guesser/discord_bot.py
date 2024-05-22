@@ -30,8 +30,8 @@ import discord.ext.tasks
 import pandas as pd
 from dotenv import load_dotenv
 from real_player import RealPlayer
+from sim_player import SimPlayer
 from word_bank import WordBank
-from tester import Tester
 
 # Set Discord intents (these are permissions that determine what the bot is allowed to observe)
 intents = discord.Intents.default()
@@ -118,27 +118,30 @@ async def wordle(ctx: discord.ext.commands.context.Context):
     first = datetime.date(2021, 6, 19)
     number = (datetime.date.today() - first).days
     response = f"Wordle {number:,} #\n\n"
-    guess_count = 0
+    guesses = []
 
     # while True:
     #     try:
     with RealPlayer(url) as rp:
-        for item in rp.run_generator():
-            line = item[1].replace("2", ":green_square:").replace("1", ":yellow_square:").replace("0", ":black_large_square:")
+        for guess, result in rp.run_generator():
+            line = result.replace("2", ":green_square:").replace("1", ":yellow_square:").replace("0", ":black_large_square:")
             response += line + "\n"
-            guess_count += 1
+            guesses.append((guess, result))
 
-            if item[1] == "22222" or item[1].isalpha():
-                solutions[0] = item[0]
+            if result == "22222":
+                solutions[0] = guess
                 print(solutions)
+                break
+            elif result.isalpha():
+                break
 
-        if guess_count > 6:
-            guess_count = "x"
+        guess_count = "x" if len(guesses) > 6 else len(guesses)
         response = response.replace("#", f"{guess_count}/6")
         #     break
         # except:
         #     pass
 
+    print(guesses)
     await ctx.send(response)
 
 
@@ -233,21 +236,26 @@ async def wordle_task():
     """ Play todays Wordle every day at 8am """
     url = "https://www.nytimes.com/games/wordle/index.html"
     response = f"Wordle {WORDLE_NUMBER:,} #\n\n"
-    guess_count = 0
+    guesses = []
 
     with RealPlayer(url) as rp:
-        for item in rp.run_generator():
-            line = item[1].replace("2", ":green_square:").replace("1", ":yellow_square:").replace("0", ":black_large_square:")
+        for guess, result in rp.run_generator():
+            line = result.replace("2", ":green_square:").replace("1", ":yellow_square:").replace("0", ":black_large_square:")
             response += line + "\n"
-            guess_count += 1
+            guesses.append((guess, result))
 
-            if item[1] == "22222" or item[1].isalpha():
-                solutions[0] = item[0]
+            if result == "22222":
+                solutions[0] = guess
+                print(solutions)
+                break
 
-        if guess_count > 6:
-            guess_count = "x"
+            if result.isalpha():
+                break
+
+        guess_count = "x" if len(guesses) > 6 else len(guesses)
         response = response.replace("#", f"{guess_count}/6")
 
+    print(guesses)
     for channel in wordle_bot.get_all_channels():
         if channel.name.lower() in ["wordle", "worldle", "nyt"]:
             await channel.send(response)
@@ -256,23 +264,28 @@ async def wordle_task():
 async def wordle_noon():
     """ Resets the Noon Wordle at 12pm every day """
     response = f"Wordle {WORDLE_NUMBER:,} #\n\n"
-    guess_count = 0
+    guesses = []
 
-    wb = WordBank()
+    wb = WordBank(debug=False)
     solutions[1] = wb.get_rand()
+    print(solutions)
 
-    tester = 
-    # FIXME: Update with Tester Generator for simulated solutions
-    # with RealPlayer(url) as rp:
-    #     for item in rp.run_generator():
-    #         line = item[1].replace("2", ":green_square:").replace("1", ":yellow_square:").replace("0", ":black_large_square:")
-    #         response += line + "\n"
-    #         guess_count += 1
+    with SimPlayer(solution=solutions[1]) as sp:
+        for guess, result in sp.run_generator():
+            line = result.replace("2", ":green_square:").replace("1", ":yellow_square:").replace("0", ":black_large_square:")
+            response += line + "\n"
+            guesses.append((guess, result))
 
-    #     if guess_count > 6:
-    #         guess_count = "x"
-    #     response = response.replace("#", f"{guess_count}/6")
+            if result == "22222":
+                break
 
+            if guess.lower() == "failed":
+                break
+
+        guess_count = "x" if len(guesses) > 6 else len(guesses)
+        response = response.replace("#", f"{guess_count}/6")
+
+    print(guesses)
     for channel in wordle_bot.get_all_channels():
         if channel.name.lower() in ["wordle", "worldle", "nyt"]:
             await channel.send("New Afternoon Wordle Available!")
@@ -282,22 +295,23 @@ async def wordle_noon():
 async def wordle_evening():
     """ Resets the evening Wordle at 6pm every day """
     response = f"Wordle {WORDLE_NUMBER:,} #\n\n"
-    guess_count = 0
+    guesses = []
 
-    wb = WordBank()
+    wb = WordBank(debug=False)
     solutions[2] = wb.get_rand()
+    print(solutions)
 
     # FIXME: Update with Tester Generator for simulated solutions
-    # with RealPlayer(url) as rp:
-    #     for item in rp.run_generator():
-    #         line = item[1].replace("2", ":green_square:").replace("1", ":yellow_square:").replace("0", ":black_large_square:")
-    #         response += line + "\n"
-    #         guess_count += 1
+    with SimPlayer(solution=solutions[2]) as sp:
+        for guess, result in sp.run_generator():
+            line = result.replace("2", ":green_square:").replace("1", ":yellow_square:").replace("0", ":black_large_square:")
+            response += line + "\n"
+            guesses.append((guess, result))
 
-    #     if guess_count > 6:
-    #         guess_count = "x"
-    #     response = response.replace("#", f"{guess_count}/6")
+        guess_count = "x" if len(guesses) > 6 else len(guesses)
+        response = response.replace("#", f"{guess_count}/6")
 
+    print(guesses)
     for channel in wordle_bot.get_all_channels():
         if channel.name.lower() in ["wordle", "worldle", "nyt"]:
             await channel.send("New Evening Wordle Available!")

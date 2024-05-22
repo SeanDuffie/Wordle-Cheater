@@ -8,16 +8,21 @@
     TODO: calculate statistics on which letters are most valuable to identify
     TODO: Guessing logic for automatic picking
 """
-import datetime
+import difflib
 import os
-from typing import Literal
 import random
 
 import pandas as pd
 
 RTDIR = os.path.dirname(__file__)
 
-import difflib
+
+METHODS = {
+    "cum": 0,
+    "uni": 1,
+    "slo": 2,
+    "tot": 3
+}
 
 
 def exact_comp(first_word, second_word):
@@ -40,7 +45,8 @@ def exact_comp(first_word, second_word):
             https://github.com/seatgeek/thefuzz
 
     Args:
-        word_list (_type_): _description_
+        first_word (str): the word from the wordle database
+        second_word (str): The regex pattern to compare it to
     """
     # score = difflib.SequenceMatcher(None, " ower", word).ratio()
     score = difflib.SequenceMatcher(None, first_word, second_word).ratio()
@@ -71,8 +77,16 @@ class WordBank:
         #         word2 = row2["Words"]
 
         # tot_alpha, con_alpha, slot_alpha = self.generate_probs()
-        # self.original_bank["Slot Odds"] = self.original_bank["Words"].apply(func=self.solution_odds, args=(slot_alpha,True))
-        # self.original_bank.sort_values(by=["Slot Odds"], ascending=False, inplace=True, ignore_index=True)
+        # self.original_bank["Slot Odds"] = self.original_bank["Words"].apply(
+            # func=self.solution_odds,
+            # args=(slot_alpha,True)
+        # )
+        # self.original_bank.sort_values(
+            # by=["Slot Odds"],
+            # ascending=False,
+            # inplace=True,
+            # ignore_index=True
+        # )
         # print(self.original_bank)
 
     def read_file(self):
@@ -81,35 +95,30 @@ class WordBank:
         Returns:
             pd.Dataframe: Single column Dataframe that has all possible 5 letter words
         """
-        # def valid_word(word: str):
-        #     """ Helper function intended to be "apply()"'d on a pandas dataframe column
-
-        #     Checks to make sure that a string contains only letters and is 5 long
-
-        #     Args:
-        #         word (str): input string
-
-        #     Returns:
-        #         bool: True if the word is 5 letters and contains no numbers or special characters
-        #     """
-        #     if len(str(word)) == 5:
-        #         return word.isalpha()
-        #     return False
-
         file = pd.read_csv(filepath_or_buffer=f'{RTDIR}\\..\\valid_guesses.csv', names=["Words"])
-        # mask = file["Words"].apply(valid_word)
-        return file#[mask].reset_index(drop=True)
+        return file
 
-    def submit_guess(self, word: str, res: str, method: Literal['cum', 'uni', 'slo', 'tot']) -> str:
-        """ Update the database off of recent guess, then select the next most likely
-        (or most productive) option to make progress
+    def parse_submission(self, word: str, res: str):
+        """ Extracts useful information from the submitted word and it's results.
+
+        NOTE: Below are listed multiple cases that have to be handled when reading results
+            Wordle already knows the answer, so they have a pool of correct characters.
+            - First, the word is searched for letters in the correct spot. These are removed from
+                the pool of correct characters and marked green (2).
+            - Next, the word is scanned from left to right to see if each letter is in the pool of
+                correct characters. For each correct character found, it is marked yellow (1) and
+                then removed from the pool.
+            - This means that if there are duplicate letters, only the correct one, or the first
+                one will be marked. Any others will be rejected. (Examples below)
+                - If the solution is "TUTOR":
+                    - "STATE" will return "01010" because there are two "T"s in the pool
+                    - "TASTE" will return "20010" because there is still a second "T" in the pool
+                    - "RURAL" will return "12000" because only the first "R" is detected
+                    - "ROWER" will return "01002" because only the correct "R" is detected
 
         Args:
-            word (str): Guess that will be used to modify the word bank
-            res (str): Results from the guess, 2 is correct, 1 is present, 0 is rejected
-
-        Returns:
-            str: recommended next guess based on probability algorithm
+            word (str): submitted guess
+            res (str): results of guess
         """
         # User Input error handling assertions
         assert len(word) == 5
@@ -120,18 +129,16 @@ class WordBank:
 
         # Parse results and update letter information
         for i, letter in enumerate(word):
-            # If the correct letter is in the correct spot
-            if res[i] == "2":
+            if res[i] == "2":                           # RIGHT LETTER, RIGHT SPOT
                 self.confirmed[i] = letter
-                # In case a duplicate letter occurs before this slot is confirmed, remove the letter from rejected
+                # If a duplicate letter is rejected earlier, then confirmed, remove from rejected.
                 self.rejected[i].replace(letter, "")
-            # If the letter is present but in a different spot
-            elif res[i] == "1":
+
+            elif res[i] == "1":                         # RIGHT LETTER, WRONG SPOT
                 self.rejected[i] += letter
                 self.possible += letter
-            # If the letter is not present (or already confirmed)
-            elif res[i] == "0":
-                # TODO: Test and see what happens if the previous duplicate is confirmed
+
+            elif res[i] == "0":                         # WRONG LETTER
                 # If letter is rejected, it checks for duplicate letters before rejecting all slots
                 loc = word.index(letter)
                 if loc != i and res[loc] in ["1", "2"]:
@@ -153,106 +160,44 @@ class WordBank:
         if self.debug:
             print(f"{self.confirmed=} | {self.rejected=} | {self.possible=}")
 
+    def search(self, word: str):
+        """ Helper function to be applied on the wordbank dataframe
+
+        TODO: Optimizations could be made here to make the search more accurate
+
+        Args:
+            word (str): input string that is being compared
+
+        Returns:
+            bool: True if the word is a possible combination of letters
+        """
+        for i in range(5):
+            # First, check to see if the letter is already confirmed, if so, skip to next character
+            if self.confirmed[i] != word[i]:
+                # If it's confirmed, but mismatched, then reject the word
+                if self.confirmed[i] != "":
+                    return False
+                # Second, check to see if any letters were rejected
+                if word[i] in self.rejected[i]:
+                    return False
+        # Finally, check to see that the word contains at least one of each possible letter
+        for c in self.possible:
+            if not c in word:
+                return False
+        return True
+
+    def eliminate(self):
+        """ Remove words from the word_bank that don't match the pattern """
         # Generate a mask of the WordBank Dataframe by comparing the options with the known data
+        before = len(self.word_bank["Words"])
         mask = self.word_bank["Words"].apply(self.search)
         # pattern = "..ing"
         # mask2 = self.word_bank["Words"].str.contains(pat=pattern, regex=True)
         # Apply the mask on the Dataframe and drop all False entries
         self.word_bank = self.word_bank[mask].reset_index(drop=True)
-
-        # Stop the guessing process if the database is empty (this should not happen)
-        if self.word_bank["Words"].size == 0:
-            print("Error! No more options!")
-            return "Failed"
-
-        # Calculate the probability of remaining options and append as a column (based on config)
-        tot_alpha, con_alpha, slot_alpha = self.generate_probs()
-        if method in ['cum', 'tot']:
-            self.word_bank["Cumul Odds"] = self.word_bank["Words"].apply(
-                func=self.solution_odds,
-                args=(tot_alpha,)
-            )
-            # TEMP: test with whole bank
-        if method in ['uni', 'tot']:
-            self.word_bank["Unique Odds"] = self.word_bank["Words"].apply(func=self.solution_odds, args=(con_alpha,))
-            # TEMP: test with whole bank
-        if method in ['slo', 'tot']:
-            self.word_bank["Slot Odds"] = self.word_bank["Words"].apply(func=self.solution_odds, args=(slot_alpha,True))
-            # TEMP: test with whole bank
-            self.original_bank["Slot Odds"] = self.original_bank["Words"].apply(func=self.solution_odds, args=(slot_alpha,True))
-
-        # If combining configurations, generate a new column will all other data
-        if method == 'tot':
-            # Combine all of the odds
-            def sum_cats(row):
-                return row["Cumul Odds"] * row["Unique Odds"] * row["Slot Odds"]
-            self.word_bank["Total Odds"] = self.word_bank.apply(func=sum_cats, axis=1)
-
-        # Sort the Dataframe based on configuration
-        words = ["", "", "", ""]
-        if method == 'cum':
-            self.word_bank.sort_values(by=["Cumul Odds"], ascending=False, inplace=True, ignore_index=True)
-            words[0] = self.word_bank["Words"][0]
-        elif method == 'uni':
-            self.word_bank.sort_values(by=["Unique Odds"], ascending=False, inplace=True, ignore_index=True)
-            words[1] = self.word_bank["Words"][0]
-        elif method == 'slo':
-            self.word_bank.sort_values(by=["Slot Odds"], ascending=False, inplace=True, ignore_index=True)
-            words[2] = self.word_bank["Words"][0]
-        elif method == 'tot':
-            self.word_bank.sort_values(by=["Total Odds"], ascending=False, inplace=True, ignore_index=True)
-            words[3] = self.word_bank["Words"][0]
-        else:
-            print("Invalid probability calculation configuration!")
-
-        def find_bridge(word, char_list):
-            score = 0
-            for l in char_list:
-                if l in word:
-                    score += .2
-            return score
-
-        # TODO: The original bank should only be used to eliminate similar words
-        oddballs = ""
-        flag = False
-        if word == "cower" and res == "02022":
-            oddballs = "pmgbkvnx"
-            flag = True
-        elif word == "baste" and res == "02222":
-            oddballs = "ptwc"
-            flag = True
-        elif word == "grace" and res == "22202":
-            oddballs = "vtdpz"
-            flag = True
-        elif word == "share" and res == "22202":
-            oddballs = "dkmpv"
-            flag = True
-        elif word == "watch" and res == "02222":
-            oddballs = "bchpw"
-            flag = True
-
-        if flag:
-            # Search the original bank for words that may eliminate the missing letters
-            self.original_bank["Sim"] = self.original_bank["Words"].apply(func=find_bridge, args=(oddballs,))
-
-            # Drop values that don't score high enough
-            index_sim = self.original_bank[(self.original_bank['Sim'] <= 0.4)].index
-            self.original_bank.drop(index_sim, inplace=True)
-
-            # Sort the filtered results and reset the index
-            self.original_bank.sort_values(by=["Sim"], ascending=False, inplace=True, ignore_index=True)
-            self.original_bank = self.original_bank.reset_index(drop=True)
-
-            # Return the most likely suggested word
-            return self.original_bank["Words"][0]
-
-        # Print results to user if they are actively participating
+        after = len(self.word_bank["Words"])
         if self.debug:
-            print("\nRemaining:")
-            print(self.word_bank)
-            print(f"Cumul sug: {words[0]},\t Unique sug: {words[1]},\t Slot sug: {words[2]},\t Total sug: {words[3]}")
-
-        return self.word_bank["Words"][0]
+            print(f"Before Drop: {before} | After Drop: {after}")
 
     def generate_probs(self):
         """ Generate the value of each individual letter in a word, this will later be used to
@@ -320,16 +265,6 @@ class WordBank:
                     contains_alphabet[letter] += 1
                     processed += letter
 
-        # # Iterate over letters an additional time
-        # for i in range(5):
-        #     # If letter is confirmed, skip it
-        #     if self.confirmed[i] == "":
-        #         # Iterate through statistics dictionary
-        #         for key, val in slot_alphabet[i].items():
-        #             # If all remaining options have the same letter, confirm it
-        #             if val > 0 and val == sum(slot_alphabet[i].values()):
-        #                 self.confirmed[i] = key
-
         return total_alphabet, contains_alphabet, slot_alphabet
 
     def solution_odds(self, word: str, alphabet: dict, slot: bool = False) -> float:
@@ -368,11 +303,9 @@ class WordBank:
             count = [0, 0, 0, 0, 0]
             for i in range(5):
                 count[i] = sum(alphabet[i].values())
-            # print(f"\t{word}: {count=} | {alphabet[0][word[0]]} | {alphabet[1][word[1]]} | {alphabet[2][word[2]]} | {alphabet[3][word[3]]} | {alphabet[4][word[4]]}")
         else:
             # Total letters that were counted
             count = sum(alphabet.values())
-            # print(f"\t{word}: {count=} | {alphabet[word[0]]} | {alphabet[word[1]]} | {alphabet[word[2]]} | {alphabet[word[3]]} | {alphabet[word[4]]}")
 
         for i in range(5):
             letter = word[i]
@@ -382,47 +315,175 @@ class WordBank:
                 # If the statistics were gathered per slot, calculate accordingly
                 if slot:
                     odds *= alphabet[i][letter] / count[i]
-                    # print(f"\tSlot Count = {alphabet[i][letter]} / {count[i]}")
                 else:
-                    # TODO: Improve here
                     odds *= alphabet[letter] / count
-                    # print(f"\tNorm Count = {alphabet[letter]} / {count}")
-            # print(f"\tOdds after {letter}: {odds}")
 
         return odds
 
-    def search(self, word: str):
-        """ Helper function to be applied on the wordbank dataframe
-
-        TODO: Optimizations could be made here to make the search more accurate
-        TODO: Handle duplicate letters
+    def examine_options(self, method: int):
+        """ Generate value of each word as a follow-up guess and sort based on method.
 
         Args:
-            word (str): input string that is being compared
+            method (int): Which method should be used to calculate and sort the DataFrame.
 
         Returns:
-            bool: True if the word is a possible combination of letters
+            str: Word recommended from word_bank DataFrame.
         """
-        for i in range(5):
-            # First, check to see if the letter is already confirmed, if so, skip to next character
-            if self.confirmed[i] != word[i]:
-                # If it's confirmed, but mismatched, then reject the word
-                if self.confirmed[i] != "":
-                    return False
-                # Second, check to see if any letters were rejected
-                if word[i] in self.rejected[i]:
-                    return False
-        # Finally, check to see that the word contains at least one of each possible letter
-        for c in self.possible:
-            if not c in word:
-                return False
-        return True
+        # Calculate the probability of remaining options and append as a column (based on config)
+        # TODO: This could be condensed if I got rid of "tot" (3) method
+        tot_alpha, con_alpha, slot_alpha = self.generate_probs()
+        if method in [0, 3]:
+            self.word_bank["Cumul Odds"] = self.word_bank["Words"].apply(
+                func=self.solution_odds,
+                args=(tot_alpha,)
+            )
+        if method in [1, 3]:
+            self.word_bank["Unique Odds"] = self.word_bank["Words"].apply(
+                func=self.solution_odds,
+                args=(con_alpha,)
+            )
+        if method in [2, 3]:
+            self.word_bank["Slot Odds"] = self.word_bank["Words"].apply(
+                func=self.solution_odds,
+                args=(slot_alpha,True)
+            )
+
+        # If combining configurations, generate a new column will all other data
+        if method == 3:
+            def sum_cats(row):
+                return row["Cumul Odds"] * row["Unique Odds"] * row["Slot Odds"]
+
+            # Combine all of the odds
+            self.word_bank["Total Odds"] = self.word_bank.apply(
+                func=sum_cats,
+                axis=1
+            )
+
+        # Sort the Dataframe based on configuration
+        match method:
+            case 0:
+                self.word_bank.sort_values(
+                    by=["Cumul Odds"],
+                    ascending=False,
+                    inplace=True,
+                    ignore_index=True
+                )
+            case 1:
+                self.word_bank.sort_values(
+                    by=["Unique Odds"],
+                    ascending=False,
+                    inplace=True,
+                    ignore_index=True
+                )
+            case 2:
+                self.word_bank.sort_values(
+                    by=["Slot Odds"],
+                    ascending=False,
+                    inplace=True,
+                    ignore_index=True
+                )
+            case 3:
+                self.word_bank.sort_values(
+                    by=["Total Odds"],
+                    ascending=False,
+                    inplace=True,
+                    ignore_index=True
+                )
+            case _:
+                print("Invalid probability calculation configuration!")
+
+        return self.word_bank["Words"][0]
+
+    def submit_guess(self, word: str, res: str, method: str = 'slo') -> str:
+        """ Update the database off of recent guess, then select the next most likely
+        (or most productive) option to make progress
+
+        Args:
+            word (str): Guess that will be used to modify the word bank
+            res (str): Results from the guess, 2 is correct, 1 is present, 0 is rejected
+            method (str): What method should be used to sort for the next guess?
+
+        Returns:
+            str: recommended next guess based on probability algorithm
+        """
+        # Extract info from the submission
+        self.parse_submission(word, res)
+
+        # Eliminate invalid options from the word_bank dataframe
+        self.eliminate()
+
+        # Stop the guessing process if the database is empty (this should not happen)
+        if self.word_bank["Words"].size == 0:
+            if self.debug:
+                print("Error! No more options!")
+            return "failed"
+
+        guess = self.examine_options(METHODS[method])
+
+        alt = None
+        guess = guess if alt is None else alt
+
+        def find_bridge(word, char_list):
+            score = 0
+            for l in char_list:
+                if l in word:
+                    score += .2
+            return score
+
+        # TODO: The original bank should only be used to eliminate similar words
+        oddballs = ""
+        flag = False
+        if word == "cower" and res == "02022":
+            oddballs = "pmgbkvnx"
+            flag = True
+        elif word == "baste" and res == "02222":
+            oddballs = "ptwc"
+            flag = True
+        elif word == "grace" and res == "22202":
+            oddballs = "vtdpz"
+            flag = True
+        elif word == "share" and res == "22202":
+            oddballs = "dkmpv"
+            flag = True
+        elif word == "watch" and res == "02222":
+            oddballs = "bchpw"
+            flag = True
+
+        if flag:
+            # Search the original bank for words that may eliminate the missing letters
+            self.original_bank["Sim"] = self.original_bank["Words"].apply(
+                func=find_bridge,
+                args=(oddballs,)
+            )
+
+            # Drop values that don't score high enough
+            index_sim = self.original_bank[(self.original_bank['Sim'] < 0.6)].index
+            self.original_bank.drop(index_sim, inplace=True)
+
+            # Sort the filtered results and reset the index
+            self.original_bank.sort_values(
+                by=["Sim"],
+                ascending=False,
+                inplace=True,
+                ignore_index=True
+            )
+            self.original_bank = self.original_bank.reset_index(drop=True)
+
+            # Return the most likely suggested word
+            return self.original_bank["Words"][0]
+
+        # Print results to user if they are actively participating
+        if self.debug:
+            print("\nRemaining:")
+            print(self.word_bank)
+
+        return guess
 
     def get_rand(self, orig: bool = True) -> str:
         """ Gets a random word from the selection
 
         Args:
-            orig (bool, optional): Should it use the whole word bank selection or the narrowed? Defaults to True.
+            orig (bool, optional): Should it use the whole word bank selection? Defaults to True.
 
         Returns:
             str: The randomly chosen word.
@@ -445,12 +506,11 @@ if __name__ == "__main__":
     # start = datetime.datetime.now()
     # while GUESS != "q":
     #     # Prompt the user for what the results were
-    #     # TODO: Potentially grab this automatically, either through webscraping or image processing
     #     RESULTS = input("What were the results? (2=green, 1=yellow, 0=grey) (ex. '02001'): ")
 
     #     # Check if the user won
     #     if RESULTS == "22222":
-    #         print(f"\nCongrats! You solved the Wordle in {GUESS_COUNT} attempts! Final Answer = {GUESS}")
+    #         print(f"\nCongrats! Wordle Solved in {GUESS_COUNT} attempts! Final Answer = {GUESS}")
     #         break
 
     #     # Check if the user exceeded the guess limit
