@@ -196,7 +196,8 @@ class WordBank:
         # Apply the mask on the Dataframe and drop all False entries
         self.word_bank = self.word_bank[mask].reset_index(drop=True)
         after = len(self.word_bank["Words"])
-        print(f"Before Drop: {before} | After Drop: {after}")
+        if self.debug:
+            print(f"Before Drop: {before} | After Drop: {after}")
 
     def generate_probs(self):
         """ Generate the value of each individual letter in a word, this will later be used to
@@ -413,7 +414,8 @@ class WordBank:
 
         # Stop the guessing process if the database is empty (this should not happen)
         if self.word_bank["Words"].size == 0:
-            print("Error! No more options!")
+            if self.debug:
+                print("Error! No more options!")
             return "failed"
 
         guess = self.examine_options(METHODS[method])
