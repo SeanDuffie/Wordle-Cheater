@@ -10,13 +10,13 @@ from bs4 import BeautifulSoup
 RTDIR = os.path.dirname(__file__)
 
 def scrape_website(url: str) -> BeautifulSoup:
-    """_summary_
+    """ Scrape the html document from the website
 
     Args:
-        url (str): _description_
+        url (str): The URL to scrape the link from
 
     Returns:
-        requests.models.Response: _description_
+        BeautifulSoup: A parsed and objectified version of the html document from the link.
     """
     # Perform the request
     response = requests.get(url=url, timeout=10)
@@ -29,13 +29,13 @@ def scrape_website(url: str) -> BeautifulSoup:
         return None
 
 def parse_html(soup: BeautifulSoup) -> pd.Series:
-    """_summary_
+    """ Extracts useful information from the parsed HTML.
 
     Args:
-        html (requests.models.Response): _description_
+        html (BeautifulSoup): HTML file that has been received and parsed by BeautifulSoup
 
     Returns:
-        pd.Series: _description_
+        pd.DataFrame: DataFrame that was constructed and formatted from html data
     """
     # Find all links that contain an href
     links = soup.find_all('a', href=True)
@@ -52,13 +52,13 @@ def parse_html(soup: BeautifulSoup) -> pd.Series:
 
 
 def parse_table(soup: BeautifulSoup) -> pd.DataFrame:
-    """_summary_
+    """ Scrapes a table from the webpage into a pandas dataframe
 
     Args:
-        html (requests.models.Response): _description_
+        html (BeautifulSoup): HTML file that has been received and parsed by BeautifulSoup
 
     Returns:
-        pd.Series: _description_
+        pd.DataFrame: DataFrame that was constructed and formatted from the table
     """
     tbl = soup.find("table")
     df = pd.read_html(str(tbl))[0]
